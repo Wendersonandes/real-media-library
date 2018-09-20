@@ -155,10 +155,11 @@ interface IFolder extends IFolderActions, IFolderContent {
      * Get all parents of this folder.
      * 
      * @param int $until The highest allowed folder id. If null _wp_rml_root() is used
+     * @param int $colIdx The index returning for the wp_rml_create_all_parents_sql() query
      * @returns int[] Folder ids, first id is the first parent
      * @since 3.3
      */
-    public function getAllParents($until = null);
+    public function getAllParents($until = null, $colIdx = 0);
     
     /**
      * Get the folder name.
@@ -254,9 +255,10 @@ interface IFolder extends IFolderActions, IFolderContent {
     /**
      * Gets a plain array with folder properties.
      * 
+     * @param boolean $deep Return the children as plain object array
      * @returns array
      */
-    public function getPlain();
+    public function getPlain($deep = false);
     
     /**
      * Get the full row of the SQL query.
@@ -286,16 +288,6 @@ interface IFolder extends IFolderActions, IFolderContent {
      * @see Filter RML/Folder/Type/Description
      */
     public function getTypeDescription($default = null);
-    
-    /**
-     * Get the type icon for this folder.
-     * 
-     * @param string $default The default (if null folder icon is used as default)
-     * @returns string
-     * @since 3.3.1
-     * @see Filter RML/Folder/Type/Icon
-     */
-    public function getTypeIcon($default = null);
     
     /**
      * Check if the folder object is a given type.

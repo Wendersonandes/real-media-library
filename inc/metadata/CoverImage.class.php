@@ -2,17 +2,14 @@
 namespace MatthiasWeb\RealMediaLibrary\metadata;
 use MatthiasWeb\RealMediaLibrary\general;
 use MatthiasWeb\RealMediaLibrary\api;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
- * Implements a cover image for root folder, collections,
- * galleries and normal folders.
- * 
- * @see interface IMetadata
- * @see meta.js for more details and javascript hooks
+/**
+ * Implements a cover image for root folder, collections, galleries and normal folders.
  */
-class CoverImage implements api\IMetadata {
+class CoverImage extends base\Base implements api\IMetadata {
     public function __construct() {
         add_action("delete_attachment", array($this, "delete_attachment"));
     }
@@ -21,60 +18,40 @@ class CoverImage implements api\IMetadata {
         delete_metadata('realmedialibrary', null, "coverImage", $postid, true);
     }
     
-    /*
-     * Enqueue scripts and styles for the media picker.
-     * 
-     * @see meta.js for more informations about the media picker.
-     */
-    public function scripts() {
-        if (general\Backend::getInstance()->isScreenBase("upload")) { 
-            wp_enqueue_media();
-            wp_enqueue_script( 'wp-media-picker', plugins_url( 'assets/js/jquery.wp-media-picker.js', RML_FILE ), array( 'jquery', 'jquery-ui-widget', 'media' ), '0.5.0', true );
-            wp_enqueue_style( 'wp-media-picker', plugins_url( 'assets/css/jquery.wp-media-picker.css', RML_FILE ), array(), '0.5.0' );
-        }
+    public function scripts($assets) {
+        // Silence is golden.
     }
     
-    /*
-     * The general custom fields. This creates the field for
-     * a cover image.
-     */
     public function content($content, $folder) {
-        $content .= '<tr>
-            <th scope="row">' . __('Cover image', RML_TD) . '</th>
-            <td><div class="spinner is-active" style="float: initial;margin: 0;"></div>
-                <fieldset style="display:none;">
-                <input name="coverImage" id="coverImage" type="text" value="' . $this->getAttachmentID($folder->getId()) . '" class="rml-meta-media-picker">
-            </fieldset></td>
-        </tr>';
+        $id = $this->getAttachmentID($folder->getId());
+        $filename = basename(get_attached_file($id));
+        $url = wp_get_attachment_image_src($id, 'full');
+        $display = 'display:' . ($url === false ? 'none' : 'inline-block');
+
+        $content .= '<label>' . __('Cover image', RML_TD) . ' <a href="#" class="rml-coverimage-remove" style="text-decoration:none;' . $display . '"><span class="dashicons dashicons-no-alt"></span>Remove</a></label>
+            <img class="rml-coverimage" src="' . ($url === false ? '' : $url[0]) . '" style="margin:5px 0;max-width:100%;height:auto;' . $display . ';" />
+            <input name="coverImage" type="hidden" value="' . $id . '"/>
+            <input class="regular-text" data-wprfc-visible="1" data-wprfc="metaCoverImage" value="' . esc_attr($filename) . '" type="text" disabled />';
         
         return $content;
     }
     
-    /*
-     * Save the general infos: CoverImage.
-     */
-    public function save($response, $folder) {
+    public function save($response, $folder, $request) {
         $fid = $folder->getId();
-        if (isset($_POST["coverImage"])) {
-            $newCoverImage = trim($_POST["coverImage"]);
-            if (!is_numeric($newCoverImage)) {
-                // delete meta
+        $coverImage = $this->getAttachmentID($fid);
+        $new = $request->get_param('coverImage');
+        
+        if (isset($new) && $coverImage !== $new && wp_attachment_is_image($new)) {
+            if (strlen($new) > 0) {
+                update_media_folder_meta($fid, "coverImage", $new);
+            }else{
+                // Delete it
                 delete_media_folder_meta($fid, "coverImage");
-            }else if ($newCoverImage != $this->getAttachmentID($fid) && wp_attachment_is_image($newCoverImage)) {
-                // update or add meta
-                update_media_folder_meta($fid, "coverImage", $newCoverImage);
             }
         }
-        
         return $response;
     }
     
-    /*
-     * Get the cover image of a given folder.
-     * 
-     * @param $fid The folder id
-     * @return int Attachment ID or empty string
-     */
     public function getAttachmentID($fid) {
         return get_media_folder_meta($fid, "coverImage", true);
     }

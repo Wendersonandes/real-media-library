@@ -5,11 +5,8 @@ use MatthiasWeb\RealMediaLibrary\api;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
+/**
  * Implements a description field.
- * 
- * @see inc/api/meta.php
- * @see interface IMetadata for more details
  */
 class Description implements api\IMetadata {
     
@@ -17,54 +14,30 @@ class Description implements api\IMetadata {
         return get_media_folder_meta($folder_id, "description", true);
     }
     
-    /*
-     * The input field.
-     *
-     * @see interface IMetadata
-     */
     public function content($content, $folder) {
         $description = $this->getDescription($folder->getId());
-        $content .= '<tr>
-            <th scope="row">' . __('Description') . '</th>
-            <td>
-                <textarea name="description" type="text" class="regular-text" style="width: 100%;box-sizing: border-box;">' . esc_textarea($description) . '</textarea>
-            </td>
-        </tr>
-        <tr class="rml-meta-margin"></tr>';
+        $content .= '<label>' . __('Description') . '</label><textarea name="description" class="regular-text">' . esc_textarea($description) . '</textarea>';
         
         return $content;
     }
     
-    /*
-     * Save the general infos: Name
-     * 
-     * @see interface IMetadata
-     */
-    public function save($response, $folder) {
-        $toSaveFID = $folder->getId();
-        $description = $this->getDescription($toSaveFID);
+    public function save($response, $folder, $request) {
+        $fid = $folder->getId();
+        $description = $this->getDescription($fid);
+        $new = $request->get_param("description");
         
-        if (isset($_POST["description"])) {
-            $newDesc = $_POST["description"];
-            if ($newDesc != $description) {
-                if (strlen($newDesc) > 0) {
-                    update_media_folder_meta($toSaveFID, "description", $newDesc);
-                }else{
-                    // Delete it
-                    delete_media_folder_meta($toSaveFID, "description");
-                }
+        if (isset($new) && $new !== $description) {
+            if (strlen($new) > 0) {
+                update_media_folder_meta($fid, "description", $new);
+            }else{
+                // Delete it
+                delete_media_folder_meta($fid, "description");
             }
         }
-        
         return $response;
     }
     
-    /*
-     * The general scripts and styles.
-     *
-     * @see interface IMetadata
-     */
-    public function scripts() {
+    public function scripts($assets) {
         // Silence is golden.
     }
 }

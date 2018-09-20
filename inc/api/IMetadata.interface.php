@@ -44,15 +44,16 @@ interface IMetadata {
      * $response["data"]["myData"] = "Test";</code>
      * 
      * @param array $response Array of errors and successful data.
+     * @param WP_REST_Request $request The server request
      * @param IFolder|null $folder The folder object
      * @returns array Response
      */
-    public function save($response, $folder);
+    public function save($response, $folder, $request);
     
     /**
      * Enqueue scripts and styles for this meta box.
      * 
-     * Note: This resources are only loaded in the media library.
+     * @param {Assets} $assets The assets instance so you can enqueu library scripts
      */
-    public function scripts();
+    public function scripts($assets);
 }

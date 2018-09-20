@@ -3,26 +3,27 @@ namespace MatthiasWeb\RealMediaLibrary\folder;
 use MatthiasWeb\RealMediaLibrary\general;
 use MatthiasWeb\RealMediaLibrary\folder;
 use MatthiasWeb\RealMediaLibrary\attachment;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
+/**
  * Static class to perform CRUD operations on folders. Please do not use this directly
  * instead use the API functions.
  * The R (Read) is not implemented here because updates should be executed through the API functions.
  * It also holds the registered creatables.
  */
-class CRUD extends general\Base {
+class CRUD extends base\Base {
     
     private static $me = null;
     
-    /*
-     * @see this::registerCreatable()
+    /**
+     * Available creatables.
      */
     private $creatables = array();
     
-    /*
-     * @api wp_rml_create()
+    /**
+     * @see wp_rml_create()
      */
     public function create($name, $parent, $type, $restrictions = array(), $supress_validation = false, $return_existing_id = false) {
         $this->debug("Try to create folder with name '$name'...", __METHOD__);
@@ -42,7 +43,15 @@ class CRUD extends general\Base {
             }
             
             // Create the new instance for the folder
-            $result = call_user_func_array(array(folder\CRUD::getInstance()->getCreatables($type), 'create'), array( (object) (array(
+            if ($type === null) {
+                throw new \Exception('Type not given.');
+            }
+            
+            $creatable = folder\CRUD::getInstance()->getCreatables($type);
+            if (!$creatable) {
+                throw new \Exception('Creatable class type not found.');
+            }
+            $result = call_user_func_array(array($creatable, 'create'), array( (object) (array(
                 "id" => -1,
                 "parent" => intval($parent),
                 "name" => $name,
@@ -52,11 +61,11 @@ class CRUD extends general\Base {
             
             // Check if other fails are counted
             if (!$supress_validation) {
-                /*f
+                /**
                  * Checks if a creation of a folder is allowed.
                  * 
                  * @param {string[]} $errors An array of errors
-                 * @filter RML/Validate/Create
+                 * @hook RML/Validate/Create
                  * @returns {string[]} When the array has one or more items the creation is cancelled with the string message
                  */
                 $errors = apply_filters("RML/Validate/Create", array(), $name, $parent, $type);
@@ -82,8 +91,8 @@ class CRUD extends general\Base {
         return array($e->getMessage());
     }
     
-    /*
-     * @api wp_rml_rename()
+    /**
+     * @see wp_rml_rename()
      */
     public function update($name, $id, $supress_validation = false) {
         try {
@@ -100,8 +109,8 @@ class CRUD extends general\Base {
         }
     }
     
-    /*
-     * @api wp_rml_delete()
+    /**
+     * @see wp_rml_delete()
      */
     public function remove($id, $supress_validation = false) {
         $this->debug("Try to delete folder id $id...", __METHOD__);
@@ -118,20 +127,33 @@ class CRUD extends general\Base {
                     }
                 }
                 
-                // Delete folder
-                /*a
+                /**
                  * This action is fired before a folder gets deleted. It allows you
                  * for example to throw an exception if the deletion should be stopped with an
                  * error message.
                  * 
                  * @param {IFolder} $folder The folder object
-                 * @action RML/Folder/Predeletion
+                 * @hook RML/Folder/Predeletion
                  */
                 do_action("RML/Folder/Predeletion", $folder);
+                
+                /**
+                 * This action is fired before a folder gets deleted and surely gets deleted
+                 * (that means after the RML/Folder/Predeletion action).
+                 * 
+                 * @param {IFolder} $folder The folder object
+                 * @hook RML/Folder/Delete
+                 * @since 4.0.7
+                 */
+                do_action("RML/Folder/Delete", $folder);
+                
                 global $wpdb;
+                
+                // Delete folder
                 $table_name = general\Core::getInstance()->getTableName();
                 $wpdb->query($wpdb->prepare("DELETE FROM $table_name WHERE id = %d", $id));
                 
+                // Delete post relations and move to unorganized
                 $table_name = general\Core::getInstance()->getTableName("posts");
                 $wpdb->query($wpdb->prepare("DELETE FROM $table_name WHERE fid = %d", $id));
                 
@@ -139,12 +161,12 @@ class CRUD extends general\Base {
                 $rowData = $folder->getRowData();
                 wp_rml_structure_reset();
                 
-                /*a
+                /**
                  * This action is fired after a folder is deleted.
                  *
                  * @param {int} $id The folder id
                  * @param {object} $rowData The SQL row data (raw) data for the deleted folder
-                 * @action RML/Folder/Deleted
+                 * @hook RML/Folder/Deleted
                  */
                 do_action("RML/Folder/Deleted", $id, $rowData);
                 $this->debug("Successfully deleted folder id $id", __METHOD__);
@@ -159,8 +181,8 @@ class CRUD extends general\Base {
         }
     }
     
-    /*
-     * @api wp_rml_register_creatable()
+    /**
+     * @see wp_rml_register_creatable()
      */
     public function registerCreatable($qualified, $type, $onRegister = false) {
         $this->creatables[$type] = $qualified;
@@ -169,8 +191,12 @@ class CRUD extends general\Base {
         }
     }
     
+    /**
+     * Get available creatables.
+     */
     public function getCreatables($type = null) {
-        return $type === null ? $this->creatables : $this->creatables[$type];
+        return $type === null ? $this->creatables
+            : (isset($this->creatables[$type]) ? $this->creatables[$type] : null);
     }
     
     public static function getInstance() {

@@ -2,21 +2,18 @@
 namespace MatthiasWeb\RealMediaLibrary\attachment;
 use MatthiasWeb\RealMediaLibrary\general;
 use MatthiasWeb\RealMediaLibrary\order;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
+/**
  * This class handles all hooks for the general filters.
  */
-class Filter extends general\Base {
+class Filter extends base\Base {
     private static $me = null;
     
-    private function __construct() {
-    	add_filter('RML/Backend/JS_Localize', array($this, 'localize'));
-    }
-    
-    /*
-     * @api wp_attachment_folder()
+    /**
+     * @see wp_attachment_folder()
      */
     public function getAttachmentFolder($attachmentId, $default = null) {
         $isArray = is_array($attachmentId);
@@ -35,38 +32,15 @@ class Filter extends general\Base {
         }
         return $default;
     }
-    
-    /*
-     * Localize my filter variables for javascripts
-     * 
-     * @filter RML/Backend/JS_Localize
-     */
-    public function localize($arr) {
-    	//$namesSlugArray = Structure::getInstance()->getView()->namesSlugArray();
-        $mode = get_user_option( 'media_library_mode', get_current_user_id() ) ? get_user_option( 'media_library_mode', get_current_user_id() ) : 'grid';
-    	
-    	// General for filters
-    	$arr["ajaxUrl"] = admin_url('admin-ajax.php');
-    	$arr["apiUrl"] = general\REST::url();
-    	$arr["pluginUrl"] = plugins_url("/", RML_FILE);
-    	$arr["blogId"] = get_current_blog_id();
-    	$arr["listMode"] = $mode;
-    	$arr["root"] = _wp_rml_root();
-    	$arr["hasUserSettings"] = has_filter("RML/User/Settings/Content");
-    	
-    	return $arr;
-    }
 	
-	/*
+	/**
 	 * Changes the SQL query like this way to JOIN the realmedialibrary_posts
 	 * table and search for the given folder.
-	 * 
-	 * @hooked posts_clauses
 	 */
 	public function posts_clauses($clauses, $query) {
 	    global $wpdb;
         $table_name = general\Core::getInstance()->getTableName("posts");
-        $saveInCookie = (is_admin() && defined('DOING_AJAX') && DOING_AJAX || general\Backend::getInstance()->isScreenBase("upload")) && !headers_sent();
+        $saveInCookie = (is_admin() && defined('DOING_AJAX') && DOING_AJAX || $this->getCore()->getAssets()->isScreenBase("upload")) && !headers_sent();
 	    
 	    // Shortcut destinations
 	    $fields = trim($clauses["fields"], ",");
@@ -76,7 +50,7 @@ class Filter extends general\Base {
 	        $root = _wp_rml_root();
 	        $cookieValue = $root; // Save the last queried cookie for "New media" dropdown
 	        
-	        /*f
+	        /**
 	         * Do a filter to restrict the RML posts clauses and apply an own clauses modifier.
 	         * If you want to use your own implementation of posts_clauses you can add this code
 	         * to to restrict the RML standard posts_clauses: <code>$clauses["_restrictRML"] = true;</code>
@@ -86,7 +60,7 @@ class Filter extends general\Base {
 	         * @param {int} $folderId The folder ID to query
 	         * @param {int} $root The root folder ID, see also {@link RML/RootParent}
 	         * @returns {array} $clauses
-	         * @filter RML/Filter/PostsClauses
+	         * @hook RML/Filter/PostsClauses
 	         * @see https://developer.wordpress.org/reference/hooks/posts_clauses/
 	         */
 	        $clauses = apply_filters("RML/Filter/PostsClauses", $clauses, $query, $folderId, $root);
@@ -121,39 +95,44 @@ class Filter extends general\Base {
 	    }else if ($query->get("post_type") === "attachment") {
 	        // Reset last queried folder to unorganized
 	        if ($saveInCookie) {
-	            $this->lastQueriedFolder(_wp_rml_root());
+	            $this->lastQueriedFolder(0);
 	        }
 	    }
 	    
 	    return $clauses;
 	}
 	
+	/**
+	 * Set or get the last queried folder.
+	 * 
+	 * @param int $folder The folder id (0 is handled as "All files" folder)
+	 * @returns int
+	 */
 	public function lastQueriedFolder($folder = null) {
 	    $key = "rml_" . get_current_blog_id() . "_lastquery";
-	    if ($folder !== null) {
+	    $prevCookie = isset($_COOKIE[$key]) ? intval($_COOKIE[$key]) : null;
+	    $folder = intval($folder);
+	    if ($folder !== null  && $folder !== $prevCookie) {
 	        setcookie( $key, $folder, strtotime( '+365 days' ), '/' );
 	    }
-	    return isset($_COOKIE[$key]) ? $_COOKIE[$key] : _wp_rml_root();
+	    return $prevCookie === null ? _wp_rml_root() : $prevCookie;
 	}
 	
-    /*
+    /**
      * Define a new query option for \WP_Query.
-     * "rml_folder" integer
-     * 
-     * @hooked pre_get_posts
      */
     public function pre_get_posts($query) {
-        $folder = $this->getFolder($query, general\Backend::getInstance()->isScreenBase("upload"));
+        $folder = $this->getFolder($query, $this->getCore()->getAssets()->isScreenBase("upload"));
     	
     	if ($folder !== null) {
     	    $query->set('parsed_rml_folder', $folder);
     	}
     }
     
-    /*
-     * Get folder from different sources.
+    /**
+     * Get folder from different sources (WP_Query, GET Query).
      * 
-     * @return folder id or null
+     * @returns int
      */
     public function getFolder($query, $fromRequest = false) {
     	$folder = null;
@@ -164,7 +143,7 @@ class Filter extends general\Base {
     			
 	        // Query rml folder from query itself
     		$folder = $queryFolder;
-    	}else if(_wp_rml_active()) {
+    	}else if(wp_rml_active()) {
     		if ($fromRequest) {
 	    		if (isset($_REQUEST["rml_folder"])) {
 	    	        // Query rml folder from list mode
@@ -182,6 +161,9 @@ class Filter extends general\Base {
     	return is_numeric($folder) ? $folder : null;
     }
     
+    /**
+     * Modify AJAX request for query-attachments request.
+     */
     public function ajax_query_attachments_args($query) {
     	$fid = $this->getFolder(null, true);
     	if ($fid !== null) {
@@ -190,12 +172,8 @@ class Filter extends general\Base {
     	return $query;
     }
     
-    /*
-     * Add the attachment ID to the count update when deleting it
-     * 
-     * @hooked delete_attachment
-     * @see CountCache::wp_die
-     * @see CountCache::$newAttachments
+    /**
+     * Add the attachment ID to the count update when deleting it.
      */
     public function delete_attachment($postID) {
         //wp_rml_move(_wp_rml_root(), array($postID)); // Simulate an move to unorganized @deprecated
@@ -216,13 +194,9 @@ class Filter extends general\Base {
         }
     }
     
-    /*
+    /**
      * Add a attribute to the ajax output. The attribute represents
      * the folder order number if it is a gallery.
-     * 
-     * @used order.js
-     * @hooked wp_prepare_attachment_for_js
-     * @movedpermanently Filter::wp_prepare_attachment_for_js()
      */
     public function wp_prepare_attachment_for_js($response, $attachment, $meta) {
 		// append attribute
@@ -248,16 +222,14 @@ class Filter extends general\Base {
 		return $response;
 	}
 	
-    /*
-     * Create a select option in list table of attachments
-     * 
-     * @hooked restrict_manage_posts
+    /**
+     * Create a select option in list table of attachments.
      */
     public function restrict_manage_posts() {
         $screen = get_current_screen();
     	if ($screen->id == "upload") {
     		echo '<select name="rml_folder" id="filter-by-rml-folder" class="attachment-filters attachment-filters-rml">
-    			' . Structure::getInstance()->getView()->optionsFasade(
+    			' . Structure::getInstance()->getView()->dropdown(
     						isset($_REQUEST['rml_folder']) ? $_REQUEST['rml_folder'] : "",
     						array()
 						) . '

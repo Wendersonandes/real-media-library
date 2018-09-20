@@ -1,66 +1,81 @@
 <?php
 namespace MatthiasWeb\RealMediaLibrary\attachment;
 use MatthiasWeb\RealMediaLibrary\general;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
- * This class handles all hooks for the custom field in a attachment.s
+/**
+ * This class handles all hooks for the custom field in a attachments dialog.
  */
-class CustomField extends general\Base {
+class CustomField extends base\Base {
     private static $me = null;
     
     private function __construct() {
         // Silence is golden.
     }
     
-    /*
-     * When editing a attachment show up a select
-     * option to change the parent folder.
-     * 
-     * @hooked attachment_fields_to_edit
+    /**
+     * When editing a attachment show up a select option to change the parent folder.
      */
     public function attachment_fields_to_edit($form_fields, $post) {
+        if (!wp_rml_active()) {
+            return $form_fields;
+        }
+        
         $folderID = wp_attachment_folder($post->ID);
         
         // Check move permission
-        $selectDisabled = "";
+        $editable = true;
         if ($folderID > 0) {
             $folder = wp_rml_get_object_by_id($folderID);
-            if (is_rml_folder($folder) && $folder->isRestrictFor("mov")) {
-                $selectDisabled = 'disabled="disabled"';
-            }
+            $editable = is_rml_folder($folder) && !$folder->isRestrictFor("mov");
         }
         
-        $textToMove = wp_attachment_is_shortcut($post->ID)
+        $isShortcut = wp_attachment_is_shortcut($post->ID);
+        
+        $textToMove = $isShortcut
                         ? __("When you move this shortcut, the folder location of the source/main file will not be changed.", RML_TD)
                         : __("When you move this attachment, the folder location of the associated shortcuts of this attachment will not be changed.", RML_TD);
+        
+        /**
+         * This content is showed in the attachment details below the custom field dropdown.
+         * 
+         * @param {string} $output HTML output
+         * @param {WP_Post} $post The attachment
+         * @param {boolean} $isShortcut If true the file is a shortcut
+         * @parma {array} $form_fields
+         * @returns {string} The HTML output
+         * @since 4.0.7
+         * @hook RML/CustomField
+         */
+        $appendHTML = apply_filters('RML/CustomField', '', $post, $isShortcut, $form_fields);
         
         // Create form field
         $form_fields['rml_dir'] = array(
         	'label' => __('Folder', RML_TD),
         	'input' => 'html',
-        	'html'  => 
-        	    // ' . Structure::getInstance()->getView()->optionsFasade($folderID, null, false) . '
-        	    '<div class="rml-folder-edit" ' . $selectDisabled . '>' .
-        	    Structure::getInstance()->getView()->getHTMLBreadcrumbByID($folderID) . '
-        	       <select name="attachments[' . $post->ID . '][rml_folder]" ' . $selectDisabled . '>
-	                   <option>' . __('Loading') . '</option>
-        	       </select>
-        	       <script>jQuery(function() { window.rml.hooks.call("_attachment_fields_to_edit", ["attachments[' . $post->ID . '][rml_folder]", "' . $folderID . '"]); });</script>
-        	    </div>
-        	    <p class="description">' . $textToMove . '</p>',
+        	'html'  => '<div class="rml-folder-edit">' .
+        	    ($editable ? '<select class="rml-wprfc" data-wprfc="customField" data-selected="' . esc_attr($folderID) . '" name="attachments[' . $post->ID . '][rml_folder]"></select>' : '') .
+    	        Structure::getInstance()->getView()->breadcrumb($folderID, $editable) . 
+    	        '</div><p class="description">' . $textToMove . '</p>' . $appendHTML
         );
         
         // Create form field
         $form_fields['rml_shortcut'] = array(
         	'label' => '',
         	'input' => 'html',
-        	'html'  => '<div class="rml-shortcut-info" data-id="' . $post->ID . '"></div>'
+        	'html'  => '<div class="rml-wprfc" data-wprfc="shortcutInfo" data-id="' . $post->ID . '"></div><script>jQuery(function() { window.rml.hooks.call("wprfc"); });</script>'
         );
         return $form_fields;
     }
     
+    /**
+     * Get the HTML shortcut info container.
+     * 
+     * @param int $postId The post id
+     * @returns string
+     */
     public function getShortcutInfoContainer($postId) {
         $post = get_post($postId);
         $output = "";
@@ -93,7 +108,7 @@ class CustomField extends general\Base {
             }
             $output .= '</p>';
             
-            /*f
+            /**
              * This content is showed in the attachment details. It shows informations
              * about the shortcut.
              * 
@@ -101,7 +116,7 @@ class CustomField extends general\Base {
              * @param {WP_Post} $post The attachment
              * @param {int} $shortcut If > 0 it is an attachment id (source)
              * @returns {string} The HTML output
-             * @filter RML/Shortcut/Info
+             * @hook RML/Shortcut/Info
              */
             apply_filters("RML/Shortcut/Info", $output, $post, $shortcut);
     	    $output .= '</div>';
@@ -109,13 +124,11 @@ class CustomField extends general\Base {
         return $output;
     }
     
-    /*
+    /**
      * When saving a attachment change the parent folder.
-     * 
-     * @hooked attachment_fields_to_save
      */
     public function attachment_fields_to_save($post, $attachment) {
-        if (isset($attachment['rml_folder'])){
+        if (isset($attachment['rml_folder']) && wp_rml_active()) {
             if (wp_rml_get_object_by_id($attachment['rml_folder']) === null) {
                 $attachment['rml_folder'] = _wp_rml_root();
             }

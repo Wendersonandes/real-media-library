@@ -48,14 +48,15 @@ interface IUserSettings {
      * 
      * @param array $response Array of errors and successful data.
      * @param int $user Current user id
+     * @param WP_REST_Request $request The server request
      * @returns array Response
      */
-    public function save($response, $user);
+    public function save($response, $user, $request);
     
     /**
      * Enqueue scripts and styles for this meta box.
-     * 
-     * Note: This resources are only loaded in the media library.
+     *
+     * @param {Assets} $assets The assets instance so you can enqueu library scripts
      */
-    public function scripts();
+    public function scripts($assets);
 }

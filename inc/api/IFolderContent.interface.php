@@ -80,6 +80,26 @@ interface IFolderContent {
     public function getContentCustomOrder();
     
     /**
+     * Override this functionality to force the content custom order
+     * in the posts_clauses.
+     * 
+     * @returns boolean
+     * @since 4.0.2
+     */
+    public function forceContentCustomOrder();
+    
+    /**
+     * Override the default posts_clauses join and orderby instead of the RML standard.
+     * This can be useful if you want to take the order from another relationship.
+     * You have to return true if you have overwritten it.
+     * 
+     * @param array $pieces The posts_clauses $pieces parameter
+     * @returns boolean
+     * @since 4.0.2
+     */
+    public function postsClauses($pieces);
+    
+    /**
      * Get the next attachment id for a specific attachment. It returns false if
      * the attachment is at the end or the folder has no custom content order.
      * 

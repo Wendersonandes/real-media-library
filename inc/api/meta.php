@@ -165,10 +165,10 @@ if (!function_exists('add_rml_user_settings_box')) {
         }
         
         add_filter('RML/User/Settings/Content' . (empty($contentGroup) ? "" : "/" . $contentGroup), array($obj, 'content'), $priority, 2);
-        add_filter('RML/User/Settings/Save', array($obj, 'save'), $priority, 2);
+        add_filter('RML/User/Settings/Save', array($obj, 'save'), $priority, 3);
         
         if ($hasScripts) {
-            add_action("RML/Backend/Scripts/MediaLibrary", array($obj, "scripts"), $priority);
+            add_action("RML/Scripts", array($obj, "scripts"), $priority);
         }
         return true;
     }
@@ -196,10 +196,10 @@ if (!function_exists('add_rml_meta_box')) {
         }
         
         add_filter('RML/Folder/Meta/Content' . (empty($contentGroup) ? "" : "/" . $contentGroup), array($obj, 'content'), $priority, 2);
-        add_filter('RML/Folder/Meta/Save', array($obj, 'save'), $priority, 2);
+        add_filter('RML/Folder/Meta/Save', array($obj, 'save'), $priority, 3);
         
         if ($hasScripts) {
-            add_action("RML/Backend/Scripts/MediaLibrary", array($obj, "scripts"), $priority);
+            add_action("RML/Scripts", array($obj, "scripts"), $priority);
         }
         return true;
     }

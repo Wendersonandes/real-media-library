@@ -1,6 +1,7 @@
 <?php
 namespace MatthiasWeb\RealMediaLibrary\comp\complexquery;
 use MatthiasWeb\RealMediaLibrary\general;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
@@ -17,7 +18,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
  * 
  * @example $rows = new MyComplexQuery($wpdb)->getResults();
  */
-abstract class ComplexQuery extends general\Base {
+abstract class ComplexQuery extends base\Base {
     private $wpdb;
     
     private $isProcedurable;
@@ -98,8 +99,7 @@ abstract class ComplexQuery extends general\Base {
      */
     final public function install($callable) {
         // Avoid error messages in frontend
-        require_once(RML_PATH . '/inc/others/install.php');
-        rml_install(false, $callable);
+        $this->getCore()->getActivator()->install(false, $callable);
     }
     
     /**

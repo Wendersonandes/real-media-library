@@ -1,24 +1,21 @@
 <?php
 namespace MatthiasWeb\RealMediaLibrary\general;
 use MatthiasWeb\RealMediaLibrary\attachment;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
+/**
  * This class handles all hooks for future updates (migrations).
  */
-class Migration extends Base {
+class Migration extends base\Base {
     private static $me = null;
     
     private function __construct() {
         // Silence is golden.
     }
     
-    /*
-     * @hooked plugins_loaded
-     */
     public function plugins_loaded() {
-        add_action("RML/Sidebar/Content",           array($this, "sidebar_content"));
         add_action("RML/Options/Register",          array($this, "register_options_07102016"));
         add_filter("RML/Migration/07102016",        array($this, "migrate_07102016"));
         
@@ -35,7 +32,7 @@ class Migration extends Base {
      * 
      * @migration 20170925
      */
-    /*
+    /**
      * Do the migration to save the current owner to the database and reset the slugs.
      */
     public function migrate_20170925($arr) {
@@ -56,7 +53,7 @@ class Migration extends Base {
      * @migration 20161229
      */
      
-    /*
+    /**
      * Do the migration if no multisite.
      */
     public function migrate_20161229($arr) {
@@ -65,8 +62,8 @@ class Migration extends Base {
         return $arr;
     }
      
-    /*
-     * Do the migration.
+    /**
+     * Do the migration and migrate the order table to the posts table.
      */
     public function do_20161229() {
         $this->debug("Migrate the order table to the posts table...", __METHOD__);
@@ -98,12 +95,9 @@ class Migration extends Base {
 		$wpdb->suppress_errors($suppress_errors);
     }
     
-    /*
+    /**
      * Register a migration button to copy the files from wp_postmeta
      * to wp_realmedialibrary_posts table.
-     * 
-     * @hooked RML/Options/Register
-     * @see this::do_07102016
      */
     public function register_options_20161229() {
         $migrations = $this->getMigrations();
@@ -121,7 +115,7 @@ class Migration extends Base {
     }
     
     public function html_rml_button_20161229() {
-        echo '<button class="rml-button-wipe button" data-nonce-key="migrateDismiss" data-action="rml_migration" data-method="20161229">' . __('Import gallery order', RML_TD) . '</button>
+        echo '<a class="rml-rest-button button" data-url="reset/migration" data-method="POST" data-build="20161229">' . __('Import gallery order', RML_TD) . '</a>
             <p class="description">' . __("You have used an old version (<= 2.7.2) of RML and the new version (>= 2.8) has changed the place where the image gallery order is stored.", RML_TD) . '</p>';
     }
     
@@ -134,7 +128,7 @@ class Migration extends Base {
      * @migration 07102016
      */
      
-    /*
+    /**
      * Do the migration if no multisite.
      */
     public function migrate_07102016($arr) {
@@ -142,28 +136,8 @@ class Migration extends Base {
         $arr[2] = false;
         return $arr;
     }
-     
-    public function sidebar_content($folders) {
-        $migrations = $this->getMigrations();
-        $build = "07102016";
-        
-        if (isset($migrations[$build])
-            && $migrations[$build][2]) {
-            
-            if ($folders->getCntAttachments() > 0) {
-                echo '<div class="notice inline notice-warning notice-alt">
-                    <p>
-                        Uaaargh! Your image relationships can be broken now! It is because RML has some technical changes in the new version 2.6.4.
-                        Go to <strong>Media Settings > RML - "Reset"</strong> and import the old relationships.
-                        <a href="' . admin_url("options-media.php") . '">Goto Media settings</a> or 
-                        <a href="#" class="rml-migration-dismiss" data-build="' . $build . '">dismiss this notice</a>.
-                    </p>
-                </div>';
-            }
-        }
-    }
     
-    /*
+    /**
      * Do the migration of the current blog id.
      */
     public function do_07102016() {
@@ -182,12 +156,9 @@ class Migration extends Base {
         attachment\CountCache::getInstance()->resetCountCache();
     }
     
-    /*
+    /**
      * Register a migration button to copy the files from wp_postmeta
      * to wp_realmedialibrary_posts table.
-     * 
-     * @hooked RML/Options/Register
-     * @see this::do_07102016
      */
     public function register_options_07102016() {
         $migrations = $this->getMigrations();
@@ -205,13 +176,12 @@ class Migration extends Base {
     }
     
     public function html_rml_button_07102016() {
-        echo '<button class="rml-button-wipe button" data-nonce-key="migrateDismiss" data-action="rml_migration" data-method="07102016">' . __('Import image relationships', RML_TD) . '</button>
+        echo '<a class="rml-rest-button button" data-url="reset/migration" data-method="POST" data-build="07102016">' . __('Import image relationships', RML_TD) . '</a>
             <p class="description">' . __("You have used an old version (<= 2.6.3) of RML and the new version (>= 2.6.4) has changed the place where the image relationships are stored.", RML_TD) . '</p>';
     }
     
-    /*
-     * ======================================================
-     * CREATE MIGRATIONS
+    /**
+     * CREATE MIGRATIONS.
      * 
      * Determines in a new update, if there is a migration available.
      * 
@@ -221,7 +191,6 @@ class Migration extends Base {
      *      [1] => $new version
      *      [2] => Boolean if migration is active and not finished, yet
      * }
-     * @hooked RML/Migration
      */
     public function migration($old, $new) {
         if (!is_string($old)) {
@@ -260,18 +229,15 @@ class Migration extends Base {
         $this->updateMigration($migrations);
     }
     
-    /*
-     * @see this::migration
-     */
     private function doMigration($build, $from, $to) {
         return apply_filters("RML/Migration/" . $build, array($from, $to, true));
     }
     
-    /*
+    /**
      * Dismiss an update notice.
      * 
-     * @param $build The build version of the update
-     * @return boolean
+     * @param string $build The build version of the update
+     * @returns boolean
      */
     public function dismiss($build) {
         $migrations = $this->getMigrations();
@@ -285,6 +251,9 @@ class Migration extends Base {
         }
     }
     
+    /**
+     * Get all available migrations.
+     */
     public function getMigrations() {
         // Migrate the old migration system, LOL
         if (is_multisite()) {
@@ -318,6 +287,9 @@ class Migration extends Base {
         return get_option("rml_migration", array());
     }
     
+    /**
+     * Update the migration option rml_migration in wp_options.
+     */
     public function updateMigration($migrations) {
         update_option("rml_migration", $migrations);
     }

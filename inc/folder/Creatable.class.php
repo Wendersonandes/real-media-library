@@ -7,18 +7,16 @@ use MatthiasWeb\RealMediaLibrary\order;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
+/**
  * Abstract class for a creatable folder item. It handles all general
  * actions for a folder item. If you want to add an new folder type, have a
  * look at the api function wp_rml_register_creatable();
  * 
  * A new folder type MUST have the implementation with class FOLDERTYPE
  * extends order\Sortable because every folder can also be sortable!
- * 
- * @see order\Sortable
  */
-abstract class Creatable extends Base {
-    /*
+abstract class Creatable extends BaseFolder {
+    /**
      * C'tor with the main properties.
      * 
      * The constructor does not throw any errors because when it is fully filled with parameters
@@ -26,7 +24,7 @@ abstract class Creatable extends Base {
      * 
      * Only ::instance and ::create should create instances from this class!
      * 
-     * @attention Synced with order\Sortable::__construct
+     * Synced with order\Sortable::__construct
      */
     public function __construct($id, $parent = -1, $name = "", $slug = "", $absolute = "", $order = -1, $cnt = 0, $row = array()) {
         // Check, if the folder type is defined in the right way
@@ -163,7 +161,7 @@ abstract class Creatable extends Base {
                 }
             }
             
-            /*a
+            /**
              * This action is fired before items gets moved to a specific folder.
              * It allows you for example to throw an exception with an error message
              * to cancel the movement.
@@ -172,7 +170,7 @@ abstract class Creatable extends Base {
              * @param {int[]} $attachments The attachment post ids
              * @param {IFolder} $folder The folder object
              * @param {boolean} $isShortcut If true the attachments are copied to a folder
-             * @action RML/Item/Move
+             * @hook RML/Item/Move
              */
             do_action("RML/Item/Move", $this->id, $ids, $this, $isShortcut);
             
@@ -191,14 +189,14 @@ abstract class Creatable extends Base {
             // Finish
             $this->debug("Successfully moved (isShortcut: $isShortcut)", __METHOD__);
             
-            /*a
+            /**
              * This action is fired after items gets moved to a specific folder.
              * 
              * @param {int} $fid The destination folder id
              * @param {int[]} $attachments The attachment post ids
              * @param {IFolder} $folder The folder object
              * @param {boolean} $isShortcut If true the attachments are copied to a folder
-             * @action RML/Item/MoveFinished
+             * @hook RML/Item/MoveFinished
              */
             do_action("RML/Item/MoveFinished", $this->id, $ids, $this, $isShortcut);
             return true;
@@ -207,21 +205,21 @@ abstract class Creatable extends Base {
         }
     }
     
-    /*
+    /**
      * Simply check, if an id can be inserted in this folder. If something is
      * wrong with the id, please throw an exception!
      * 
-     * @param $id The id
+     * @param int $id The id
      * @throws Exception
      */
     protected function singleCheckInsertPermissions($id) {
-        /*f
+        /**
          * Checks if an attachment can be inserted into a folder.
          * 
          * @param {string[]} $errors An array of errors
          * @param {int} $id The folder id
          * @param {IFolder} $folder The folder object
-         * @filter RML/Validate/Insert
+         * @hook RML/Validate/Insert
          * @returns {string[]} When the array has one or more items the movement is cancelled with the string message
          */
         $validation = apply_filters("RML/Validate/Insert", array(), $id, $this);
@@ -230,18 +228,18 @@ abstract class Creatable extends Base {
         }
     }
     
-    /*
+    /**
      * Simply check, if an id can be inserted in this folder. If something is
      * wrong with the id, please throw an exception!
      * 
-     * @param $id The id
+     * @param int $id The id
      * @throws Exception
      */
     protected function singleCheckInsert($id) {
         // Silence is golden.
     }
     
-    /*
+    /**
      * Persist the given creatable with the database. Think about it, that this only
      * works, when the ID === -1 (that means, it will be a new folder).
      * 
@@ -249,7 +247,7 @@ abstract class Creatable extends Base {
      * folder with the API wp_rml_get_by_id
      * 
      * @throws Exception
-     * @return integer ID of the newly created folder
+     * @returns integer ID of the newly created folder
      */
     public function persist() {
         $this->debug("Persist to database...", __METHOD__);
@@ -282,14 +280,14 @@ abstract class Creatable extends Base {
         	    $this->updateThisAndChildrensAbsolutePath();
         	    wp_rml_structure_reset(null, false);
         	    
-        	    /*a
+        	    /**
         	     * A new folder is created.
         	     * 
         	     * @param {int} $parent The parent folder id
         	     * @param {string} $name The folder name
         	     * @param {int} $type The folder type
         	     * @param {int} $id The folder id
-        	     * @action RML/Folder/Created
+        	     * @hook RML/Folder/Created
         	     */
             	do_action("RML/Folder/Created", $this->parent, $this->name, $this->getType(), $this->id);
             	$this->debug("Successfully persisted creatable with id " . $this->id, __METHOD__);
@@ -316,10 +314,8 @@ abstract class Creatable extends Base {
         }
     }
     
-    /*
+    /**
      * DO NOT USE THIS FUNCTION! IT IS ONLY FOR STRUCTURE PURPOSES.
-     * 
-     * @see attachment\Structure::parse()
      */
     public function addChildren($children) {
         $this->children[] = $children;
@@ -348,44 +344,30 @@ abstract class Creatable extends Base {
     
     // Documentated in IFolder
     public function getTypeName($default = null) {
-        /*f
+        /**
          * Filter the description name for a custom folder type.
          * 
          * @param {string} $name The name
          * @param {int} $type The type
          * @param {int} $fid The folder id
          * @returns {string}
-         * @filter RML/Folder/Type/Name
+         * @hook RML/Folder/Type/Name
          */
         return apply_filters("RML/Folder/Type/Name", $default === null ? __('Folder', RML_TD) : $default, $this->getType(), $this->getId());
     }
     
     // Documentated in IFolder
     public function getTypeDescription($default = null) {
-        /*f
+        /**
          * Filter the description for a custom folder type.
          * 
          * @param {string} $description The description
          * @param {int} $type The type
          * @param {int} $fid The folder id
          * @returns {string}
-         * @filter RML/Folder/Type/Name
+         * @hook RML/Folder/Type/Name
          */
         return apply_filters("RML/Folder/Type/Description", $default === null ? __('A folder can contain every type of file or a collection, but no gallery.', RML_TD) : $default, $this->getType(), $this->getId());
-    }
-    
-    // Documentated in IFolder
-    public function getTypeIcon($default = null) {
-        /*f
-         * Filter the icon for a custom folder type.
-         * 
-         * @param {string} $icon The icon
-         * @param {int} $type The type
-         * @param {int} $fid The folder id
-         * @returns {string}
-         * @filter RML/Folder/Type/Icon
-         */
-        return apply_filters("RML/Folder/Type/Icon", $default === null ? '<i class="fa fa-folder-open"></i>' : $default, $this->getType(), $this->getId());
     }
     
     // Documentated in IFolderActions
@@ -404,7 +386,7 @@ abstract class Creatable extends Base {
             }
             
             // Check if allowed to change the parent
-            if ($this->isRestrictFor("par")) {
+            if (!$force && $this->isRestrictFor("par")) {
                 throw new \Exception(__("You are not allowed to change the parent for this folder.", RML_TD));
             }
             
@@ -419,10 +401,37 @@ abstract class Creatable extends Base {
             }
         }
         
+        $newOrder = $ord > -1 ? $ord : $parent->getMaxOrder() + 1;
+        
+        /**
+         * This action is called when a folder was relocated in the folder tree. That
+         * means the parent was not changed, only the order was changed.
+         * 
+         * @param {IFolder} $folder The folder object
+         * @param {int} $id The new parent folder id
+         * @param {int} $order The (new) order number
+         * @param {boolean} $force If true the relocating was forced
+         * @hook RML/Folder/Relocate
+         * @since 4.0.7
+         */
+         
+        /**
+         * This action is called when a folder was moved in the folder tree. That
+         * means the parent and order was changed.
+         * 
+         * @param {IFolder} $folder The folder object
+         * @param {int} $id The new parent folder id
+         * @param {int} $order The (new) order number
+         * @param {boolean} $force If true the relocating was forced
+         * @hook RML/Folder/Move
+         * @since 4.0.7
+         */
+        do_action($id == $this->id ? 'RML/Folder/Relocate' : 'RML/Folder/Move', $this, $id, $newOrder, $force);
+        
         $oldData = $this->getRowData();
         $beforeId = $this->parent;
         $this->parent = $id;
-        $this->order = $ord > -1 ? $ord : $parent->getMaxOrder() + 1;
+        $this->order = $newOrder;
         $this->debug("Use $this->order (passed $ord as parameter) as new order value", __METHOD__);
         
         // Save in database
@@ -440,28 +449,28 @@ abstract class Creatable extends Base {
             
             // Finish
             
-            /*a
+            /**
              * This action is called when a folder was relocated in the folder tree. That
              * means the parent was not changed, only the order was changed.
              * 
              * @param {IFolder} $folder The folder object
-             * @param {int} $id The folder id
+             * @param {int} $id The new parent folder id
              * @param {int} $order The (new) order number
              * @param {boolean} $force If true the relocating was forced
              * @param {object} $oldData The old SQL row data (raw) of the folder
-             * @action RML/Folder/Relocated
+             * @hook RML/Folder/Relocated
              */
              
-            /*a
+            /**
              * This action is called when a folder was moved in the folder tree. That
              * means the parent and order was changed.
              * 
              * @param {IFolder} $folder The folder object
-             * @param {int} $id The folder id
+             * @param {int} $id The new parent folder id
              * @param {int} $order The (new) order number
              * @param {boolean} $force If true the relocating was forced
              * @param {object} $oldData The old SQL row data (raw) of the folder
-             * @action RML/Folder/Moved
+             * @hook RML/Folder/Moved
              */
             do_action($id == $this->id ? 'RML/Folder/Relocated' : 'RML/Folder/Moved', $this, $id, $this->order, $force, $oldData);
             $this->debug("Successfully moved and saved in database", __METHOD__);
@@ -488,13 +497,13 @@ abstract class Creatable extends Base {
         }
         
         if ($supress_validation === false) {
-            /*f
+            /**
              * Checks if a folder can be renamed.
              * 
              * @param {string[]} $errors An array of errors
              * @param {string} $name The new folder name
              * @param {IFolder} $folder The folder object
-             * @filter RML/Validate/Rename
+             * @hook RML/Validate/Rename
              * @returns {string[]} When the array has one or more items the rename process is cancelled with the string message
              */
             $validation = apply_filters("RML/Validate/Rename", array(), $name, $this);
@@ -503,24 +512,32 @@ abstract class Creatable extends Base {
             }
         }
         
-        // Reset
+        /**
+         * This action is called before a folder gets renamed.
+         * 
+         * @param {string} $name The new folder name
+         * @param {IFolder} $folder The folder object
+         * @hook RML/Folder/Rename
+         * @since 4.0.7
+         */
+        do_action('RML/Folder/Rename', $name, $this);
+        $oldData = $this->getRowData();
         $this->name = $name;
 
         // Save in Database
         if ($this->id > -1) {
             global $wpdb;
             $this->updateThisAndChildrensAbsolutePath();
-            $oldData = $this->getRowData();
             $table_name = $this->getTableName();
             $wpdb->query($wpdb->prepare("UPDATE $table_name SET name=%s WHERE id = %d", $name, $this->id));
             
-            /*a
+            /**
              * This action is called when a folder was renamed.
              * 
              * @param {string} $name The new folder name
              * @param {IFolder} $folder The folder object
              * @param {object} $oldData The old SQL row data (raw) of the folder
-             * @action RML/Folder/Renamed
+             * @hook RML/Folder/Renamed
              */
             do_action('RML/Folder/Renamed', $name, $this, $oldData);
             $this->debug("Successfully renamed and saved in database", __METHOD__);
@@ -531,30 +548,25 @@ abstract class Creatable extends Base {
         return true;
     }
     
-    /*
+    /**
      * Checks, if a given folder name is valid. The name is also santisized so there can
      * be no problem for physical moves for example.
      * 
-     * @param $name The folder name
-     * @return boolean
+     * @param string $name The folder name
+     * @returns boolean
      */
     public function isValidName($name) {
         $name = trim($name);
         return /*strpbrk($name, "\\/?%*:|\"<>") === FALSE &&*/ strlen($name) > 0 && !in_array($name, $this->systemReservedFolders);
     }
     
-    /*
-     * ================================
-     *          STATIC!
-     * ================================
-     */
-    /*
+    /**
      * Read ids for a given folder id.
      * 
-     * @param $id The folder id (-1 for root)
-     * @param $order The order
-     * @param $orderby The order by
-     * @return array with ids
+     * @param int $id The folder id (-1 for root)
+     * @param string $order The order
+     * @param string $orderby The order by
+     * @returns array with ids
      */
     public static function xread($id, $order = null, $orderby = null) {
         $args = array(
@@ -573,23 +585,23 @@ abstract class Creatable extends Base {
             $args["orderby"] = $orderby;
         }
         
-        /*f
+        /**
          * Modify the query arguments to fetch attachments within a folder.
          * 
          * @param {array} $query The query with post_status, post_type and rml_folder
-         * @filter RML/Folder/QueryArgs
+         * @hook RML/Folder/QueryArgs
          * @returns {array} The query
          */
         $args = apply_filters('RML/Folder/QueryArgs', $args);
         $query = new \WP_Query($args);
         $posts = $query->get_posts();
         
-        /*f
+        /**
          * The folder content (attachments) is fetched.
          * 
          * @param {int[]|WP_Post[]} $posts The posts
          * @returns {int[]|WP_Post[]}
-         * @filter RML/Folder/QueryResult
+         * @hook RML/Folder/QueryResult
          */
         $posts = apply_filters('RML/Folder/QueryResult', $posts);
         return $posts;

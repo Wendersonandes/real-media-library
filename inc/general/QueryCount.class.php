@@ -3,8 +3,8 @@ namespace MatthiasWeb\RealMediaLibrary\general;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
- * fixed count bug when WPML in usage
+/**
+ * Get the count of WP_Query resultset instead of all the rows.
  */
 class QueryCount extends \WP_Query {
     

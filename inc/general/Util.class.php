@@ -3,95 +3,25 @@ namespace MatthiasWeb\RealMediaLibrary\general;
 use MatthiasWeb\RealMediaLibrary\attachment;
 use MatthiasWeb\RealMediaLibrary\folder;
 use MatthiasWeb\RealMediaLibrary\general;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
- * Others functionality for the plugin.
+/**
+ * Util.
  */
-class Util extends Base {
+class Util extends base\Base {
+    
 	private static $me = null;
-	private $nonces = null;
-        
+
     private function __construct() {
         // Silence is golden.
     }
     
-    /*
-     * Adds nonces to the backend.
-     * 
-     * @filter RML/Backend/Nonces
-     * @filter RML/Backend/Nonces/manage_options
-     * @hooked RML/Backend/LocalizeJS
-     */
-    public function nonces($arr) {
-        if ($this->nonces == null) {
-            $this->nonces = array(
-                "bulkMove" => wp_create_nonce("rmlAjaxBulkMove"),
-                "bulkSort" => wp_create_nonce("rmlAjaxBulkSort"),
-                "folderCount" => wp_create_nonce("rmlAjaxFolderCount"),
-                "folderRename" => wp_create_nonce("rmlAjaxFolderRename"),
-                "folderDelete" => wp_create_nonce("rmlAjaxFolderDelete"),
-                "folderCreate" => wp_create_nonce("rmlAjaxFolderCreate"),
-                "sidebarResize" => wp_create_nonce("rmlAjaxSidebarResize"),
-                "treeContent" => wp_create_nonce("rmlAjaxTreeContent"),
-                "shortcutInfo" => wp_create_nonce("rmlAjaxShortcutInfo"),
-                "migrateDismiss" => wp_create_nonce("rmlAjaxMigrateDismiss")
-            );
-        }
-        
-        /*f
-         * Add your own nonces with key value pairs (nonceName => nonce).
-         * 
-         * @param {array} $nonces The available nonces
-         * @filter RML/Backend/Nonces
-         * @returns {array}
-         */
-        $this->nonces = apply_filters("RML/Backend/Nonces", $this->nonces);
-        
-        // Add user orientated nonces
-        if (current_user_can("manage_options")) {
-            $this->nonces["wipe"] = wp_create_nonce("rmlAjaxWipe");
-            
-            /*f
-             * Add your own nonces with key value pairs (nonceName => nonce).
-             * This filter is only called when the current user has manage_options
-             * permission.
-             * 
-             * @param {array} $nonces The available nonces
-             * @filter RML/Backend/Nonces/manage_options
-             * @returns {array}
-             */
-            $this->nonces = apply_filters("RML/Backend/Nonces/manage_options", $this->nonces);
-        }
-        
-        $arr["nonces"] = $this->nonces;
-        return $arr;
-    }
-    
-    /*
-     * Checks, if the permission to use a specific AJAX 
-     * request is given. It automatically dies the current
-     * screen and prints out an error.
-     * 
-     * @param nonce The nonce to check
-     * @param cap The needed capability
-     * @private
-     */
-    public function checkNonce($nonce = false, $cap = "upload_files") {
-        if ($nonce !== false) {
-            check_ajax_referer($nonce, 'nonce');
-        }
-        
-        if (!current_user_can($cap) || !_wp_rml_active()) {
-            wp_send_json_error(__("Something went wrong."));
-        }
-    }
-    
-    /*
+    /**
      * Query multiple sql statements.
      * 
-     * @param mixed sql statements
+     * @param string... $args SQL statements
      */
     public function query() {
         global $wpdb;
@@ -113,7 +43,7 @@ class Util extends Base {
             return;
         }
         
-        /*f
+        /**
          * Add a condition after a defined action ($action) to check if any parent has a metadata.
          * It also includes the self folder so you can check for own folder metadata.
          * <strong>Note:</strong> All found parents are grouped and passed through an action
@@ -133,7 +63,7 @@ class Util extends Base {
          * @see IFolder::anyParentHasMetadata()
          * @see wp_rml_create_all_parents_sql()
          * @see RML/$action/AnyParentHasMeta/$meta_key
-         * @filter RML/$action/AnyParentHasMeta
+         * @hook RML/$action/AnyParentHasMeta
          * @since 3.3
          */
         $conditions = apply_filters("RML/" . $action . "/AnyParentHasMeta", array(), $folder, $args);
@@ -147,7 +77,7 @@ class Util extends Base {
             if ($sql !== false) {
                 $rows = $this->group_by($wpdb->get_results($sql, ARRAY_A), "meta_key");
                 foreach ($rows as $meta_key => $metas) {
-                    /*a
+                    /**
                      * This action is called for the results of the RML/$action/AnyParentHasMeta filter.
                      * <strong>Note:</strong> The allowed $actions are: See RML/$action/AnyParentHasMeta
                      * 
@@ -156,7 +86,7 @@ class Util extends Base {
                      * @param {arguments[]} $args The referenced arguments which are also passed to RML/$action/AnyParentHasMeta
                      * @param {array} $all_metas All found metas grouped by meta_key so you can check for multiple meta_keys
                      * @see RML/$action/AnyParentHasMeta
-                     * @action RML/$action/AnyParentHasMeta/$meta_key
+                     * @hook RML/$action/AnyParentHasMeta/$meta_key
                      * @since 3.3
                      */
                     do_action("RML/" . $action . "/AnyParentHasMeta/" . $meta_key, $metas, $folder, $args, $rows);
@@ -165,7 +95,7 @@ class Util extends Base {
         }
     }
     
-    /*
+    /**
      * Build a tree from an array.
      * 
      * @see https://stackoverflow.com/questions/8840319/build-a-tree-from-a-flat-array-in-php
@@ -185,7 +115,7 @@ class Util extends Base {
         return $branch;
     }
     
-    /*
+    /**
      * Clears an array of a tree of the parent and id values.
      *
      * @param array $tree The result of this::buildTree
@@ -253,8 +183,7 @@ class Util extends Base {
         if (count($rows) > 0) {
             // Create migration table
             $table_name_reset = $this->getTableName("resetnames");
-            require_once(RML_PATH . '/inc/others/install.php');
-            rml_install(false, array($this, "resetAllSlugsAndAbsolutePathesTable"));
+            $this->getCore()->getActivator()->install(false, array($this, "resetAllSlugsAndAbsolutePathesTable"));
             
             // Clear already created resets
             $wpdb->query("DELETE FROM " . $table_name_reset);

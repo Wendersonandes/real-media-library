@@ -6,18 +6,12 @@ use MatthiasWeb\RealMediaLibrary\attachment;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
+/**
  * Handles the sortable content in the folder. The methods of this class contains
  * always the keyword "content".
- * 
- * @see folder\Creatable
- * @see order.js
  */
 abstract class Sortable extends folder\Creatable {
     
-    /*
-     * @attention Synced with folder\Creatable::__construct
-     */
     public function __construct($id, $parent = -1, $name = "", $slug = "", $absolute = "", $order = -1, $cnt = 0, $row = array()) {
         $this->contentCustomOrder = isset($row->contentCustomOrder) ? $row->contentCustomOrder : "2";
         
@@ -186,6 +180,16 @@ abstract class Sortable extends folder\Creatable {
     }
     
     // Documentated in IFolderContent
+    public function forceContentCustomOrder() {
+        return false;
+    }
+    
+    // Documentated in IFolderContent
+    public function postsClauses($pieces) {
+        return false;
+    }
+    
+    // Documentated in IFolderContent
     public function getAttachmentNextTo($attachmentId) {
         if ($this->getContentCustomOrder() != 1) {
             return false;
@@ -205,7 +209,7 @@ abstract class Sortable extends folder\Creatable {
     
     // Documentated in IFolderContent
     public function getContentOrderNumbers($fromCache = true, $indexMode = true) {
-        if ($this->getContentCustomOrder() != 1) {
+        if ($this->getContentCustomOrder() != 1 && !$this->forceContentCustomOrder()) {
             return false;
         }
         
@@ -271,17 +275,6 @@ abstract class Sortable extends folder\Creatable {
         general\Util::getInstance()->doActionAnyParentHas($folder, "Folder/Insert", func_get_args());
         
         if ($folder->getContentCustomOrder() == 1) {
-            // Check if order by is automatically @deprecated
-            /*$order = get_media_folder_meta($folderId, "orderby", true);
-            if (!empty($order)) {
-                $orderAutomatically = get_media_folder_meta($folderId, "orderAutomatically", true);
-                if ($orderAutomatically) {
-                    $core->debug("New content in folder $folderId, automatically order by $order ...", __METHOD__);
-                    GalleryOrder::order($folderId, $order);
-                    return;
-                }
-            }*/
-            
             $core->debug("$folderId detected some new files, synchronize with custom content order...", __METHOD__);
             $folder->contentReindex();
         }
@@ -308,7 +301,7 @@ abstract class Sortable extends folder\Creatable {
                         if ($metaOrderBy["folderId"] == $folder->getId()) {
                             $order = $metaOrderBy["value"];
                             general\Core::getInstance()->debug("New content in folder " . $folder->getId() . ", automatically order by $order ...", __METHOD__);
-                            GalleryOrder::order($folder->getId(), $order, false);
+                            GalleryOrder::getInstance()->order($folder->getId(), $order, false);
                             break;
                         }
                     }
@@ -318,7 +311,7 @@ abstract class Sortable extends folder\Creatable {
         }
     }
     
-    /*
+    /**
      * JOIN the order table and orderby the nr.
      * It is only affected when
      * $query = new \WP_Query(array(
@@ -327,10 +320,6 @@ abstract class Sortable extends folder\Creatable {
      *      'rml_folder' => 4,
      *      'orderby' => 'rml'
      * ));
-     * 
-     * @param $pieces array clauses
-     * @param &$query \WP_Query object
-     * @return $pieces
      */
     public static function posts_clauses($pieces, $query) {
         if (!empty($query->query_vars['parsed_rml_folder']) &&
@@ -339,65 +328,27 @@ abstract class Sortable extends folder\Creatable {
             )
         ) {
             global $wpdb;
+            $pieces["orderby"] = $wpdb->posts.  ".post_date DESC, " . $wpdb->posts.  ".ID DESC";
+            
             // Get folder
             $folder = wp_rml_get_object_by_id($query->query_vars['parsed_rml_folder']);
-            if ($folder === null || $folder->getContentCustomOrder() != 1) {
-                $pieces["orderby"] = $wpdb->posts.  ".post_date DESC, " . $wpdb->posts.  ".ID DESC";
+            if ($folder === null)
                 return $pieces;
-            }
+            
+            if ($folder->getContentCustomOrder() != 1 && !$folder->forceContentCustomOrder())
+                return $pieces;
             
             // left join and order by
-            $pieces["join"] .= " LEFT JOIN " . general\Core::getInstance()->getTableName("posts") . " AS rmlorder ON rmlorder.fid=$folder->id AND rmlorder.attachment = " . $wpdb->posts . ".ID ";
-            $pieces["orderby"] = "rmlorder.nr, " . $wpdb->posts.  ".post_date DESC, " . $wpdb->posts.  ".ID DESC";
+            if ($folder->postsClauses($pieces) === false) {
+                $pieces["join"] .= " LEFT JOIN " . general\Core::getInstance()->getTableName("posts") . " AS rmlorder ON rmlorder.fid=$folder->id AND rmlorder.attachment = " . $wpdb->posts . ".ID ";
+                $pieces["orderby"] = "rmlorder.nr, " . $wpdb->posts.  ".post_date DESC, " . $wpdb->posts.  ".ID DESC";
+            }
         }
         
         return $pieces;
     }
     
-    /*
-     * Create a toolbar icon to move.
-     * This should be only visible if we are in orderby
-     * post_date DESC and in the gallery are more images > 1
-     * Otherwise redirect to to order by date with <a>-class "_external".
-     * 
-     * @filter RML/Backend/JS_Localize
-     */
-    public static function js_localize($arr) {
-        $mode = get_user_option( 'media_library_mode', get_current_user_id() ) ? get_user_option( 'media_library_mode', get_current_user_id() ) : 'grid';
-        
-        if ((!isset($_GET["orderby"]) || $_GET["orderby"] !== "rml" || isset($_GET["attachment-filter"])) && $mode != "grid") {
-            $query = array();
-            if (isset($_GET["rml_folder"])) {
-                $query["rml_folder"] = $_GET["rml_folder"];
-            }
-            $query["orderby"] = "rml";
-            $query["order"] = "asc";
-            $href = "?" . http_build_query($query) . "#order";
-            $arr["wpListModeOrder"] = $href;
-        }else{
-            $arr["wpListModeOrder"] = "1";
-        }
-        return $arr;
-    }
-    
-    /*
-     * Add GET query parameter for galleries.
-     */
-    public static function treeHref($query, $id, $type) {
-        // Get folder
-        $folder = wp_rml_get_object_by_id($id);
-        if ($folder !== null && $folder->getContentCustomOrder() == 1) {
-            $query['orderby'] = "rml";
-            $query['order'] = "asc";
-        }else{
-            unset($query['orderby']);
-            unset($query['order']);
-        }
-        
-        return $query;
-    }
-    
-    /*
+    /**
      * Media Library Assistent extension.
      */
     public static function mla_media_modal_query_final_terms($query) {
@@ -412,7 +363,7 @@ abstract class Sortable extends folder\Creatable {
         return $query;
     }
     
-    /*
+    /**
      * Deletes the complete order. Use it with CAUTION!
      */
     public static function delete_all_order() {

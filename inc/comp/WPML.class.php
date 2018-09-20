@@ -2,34 +2,39 @@
 namespace MatthiasWeb\RealMediaLibrary\comp;
 use MatthiasWeb\RealMediaLibrary\general;
 use MatthiasWeb\RealMediaLibrary\attachment;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
+/**
  * This class handles the compatibility for WPML.
  */
-class WPML extends general\Base {
+class WPML extends base\Base {
     
     private static $me = null;
     
     private $active = false;
     
-    /*
-     * Avoid duplicate call of move action
+    /**
+     * Avoid duplicate call of move action.
      */
     private $previousIds = null;
+    
+    /**
+     * Avoid duplicate call of move action.
+     */
     private $previousFolderId = null;
     
-    /*
-     * C'tor
-     */
     private function __construct($root = null) {
         // Silence is golden.
     }
     
+    /**
+     * Initialize actions and filters.
+     */
     public function init() {
         global $sitepress;
-        $this->active = $sitepress !== null && get_class($sitepress) === "SitePress" && defined("WPML_MEDIA_VERSION");
+        $this->active = $sitepress !== null && get_class($sitepress) === "SitePress";
 
         if ($this->active) {
             add_action('wpml_media_create_duplicate_attachment', array($this, 'wpml_media_create_duplicate_attachment'), 10, 2);
@@ -40,6 +45,7 @@ class WPML extends general\Base {
             add_filter('RML/Tree/SQLStatement/SELECT', array($this, 'sqlstatement_select_fields'));
             add_filter('RML/Tree/SQLStatement/JOIN', array($this, 'sqlstatement_join'));
             add_filter('RML/Tree/CountAttachments', array($this, 'wpml_count_attachments'));
+            add_filter('RML/Localize', array($this, 'localize'));
             
             // Set the RML + WPML language to the user
             if (is_user_logged_in()) {
@@ -54,7 +60,17 @@ class WPML extends general\Base {
         }
     }
     
-    /*
+    public function localize($arr) {
+        global $sitepress;
+        $current = $sitepress->get_current_language();
+        $default = $sitepress->get_default_language();
+        if ($current !== $default) {
+            $arr['restQuery']['lang'] = $current;
+        }
+        return $arr;
+    }
+    
+    /**
      * Add a JOIN to the WPML count cache table.
      */
     public function sqlstatement_join($joins) {
@@ -71,7 +87,7 @@ class WPML extends general\Base {
         return $joins;
     }
     
-    /*
+    /**
      * Load the cnt from the WPML count cache table.
      */
     public function sqlstatement_select_fields($fields) {
@@ -84,7 +100,7 @@ class WPML extends general\Base {
         return $fields;
     }
     
-    /*
+    /**
      * Get the single SQL for the subquery of count getter.
      */
     public function getSingleCountSql($code, $fieldId = 'tn.fid') {
@@ -100,7 +116,7 @@ class WPML extends general\Base {
         	$where";
     }
     
-    /*
+    /**
      * Update the count cache for WPML regarding the active languages.
      */
     public function updateCountCache($folders, $attachments, $where) {
@@ -130,12 +146,15 @@ class WPML extends general\Base {
         $this->debug("WPML: Update count cache table", __METHOD__);
     }
     
+    /**
+     * Fired when wpml language gets activated.
+     */
     public function wpml_update_active_languages() {
         $this->debug("WPML: Update active languages in count cache table", __METHOD__);
         $this->dbDeltaCountCache();
     }
     
-    /*
+    /**
      * Create a count cache table with dbDelta functionality.
      */
     public function dbDeltaCountCache() {
@@ -143,8 +162,7 @@ class WPML extends general\Base {
             return false;
         }
         
-        require_once(RML_PATH . '/inc/others/install.php');
-        rml_install(false, array($this, '_dbDeltaCountCache'));
+        $this->getCore()->getActivator()->install(false, array($this, '_dbDeltaCountCache'));
         
         return true;
     }
@@ -161,7 +179,7 @@ class WPML extends general\Base {
             foreach ($langs as $code) {
                 $escaped = general\Util::getInstance()->esc_sql_name($code);
                 $keys .= "`cnt_$escaped` mediumint(10) DEFAULT NULL,
-    		  ";
+    		    ";
             }
             
             $sql = "CREATE TABLE $table_name (
@@ -177,7 +195,7 @@ class WPML extends general\Base {
         }
     }
     
-    /*
+    /**
      * Register option for PolyLang
      */
     public function options_register() {
@@ -198,7 +216,7 @@ class WPML extends general\Base {
                 <label>' . __('If you move a file also move the associated translation files.', RML_TD) . '</label>';
     }
     
-    /*
+    /**
      * A file is moved (not copied) and then move also all the translations.
      */
     public function item_move_finished($folderId, $ids, $folder, $isShortcut) {
@@ -231,7 +249,7 @@ class WPML extends general\Base {
         }
     }
     
-    /*
+    /**
      * New translation created => synchronize with original post.
      * Then reset the count cache for the unogranized folder.
      */
@@ -244,7 +262,7 @@ class WPML extends general\Base {
             ->resetCountCacheOnWpDie(_wp_rml_root());
     }
     
-    /*
+    /**
      * @see https://wpml.org/forums/topic/wp_count_posts/
      */
     public function wpml_count_attachments($count) {
@@ -252,7 +270,7 @@ class WPML extends general\Base {
         $lang = $sitepress->get_current_language();
         $table_name = $wpdb->prefix . 'icl_translations';
         
-        return $wpdb->get_var("SELECT COUNT(*)
+        return (int) $wpdb->get_var("SELECT COUNT(*)
             FROM $table_name AS wpmlt
             INNER JOIN $wpdb->posts AS p ON p.id = wpmlt.element_id
             WHERE wpmlt.element_type =  'post_attachment'

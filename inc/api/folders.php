@@ -6,6 +6,21 @@ use MatthiasWeb\RealMediaLibrary\order;
 use MatthiasWeb\RealMediaLibrary\folder;
 use MatthiasWeb\RealMediaLibrary\api;
 
+if (!function_exists('wp_rml_debug')) {
+    /**
+     * This function is recommenend for RML add-ons. You can use this function
+     * to generate log entries in the database when Settings > Media > Debug
+     * is enabled.
+     * 
+     * @param mixed|string $message The message
+     * @param string [$methodOrFunction] __METHOD__ or __FUNCTION__
+     * @since 4.0.2
+     */
+    function wp_rml_debug($message, $methodOrFunction = null) {
+        general\Core::getInstance()->debug($message, $methodOrFunction);
+    }
+}
+
 if (!function_exists('is_rml_folder')) {
     /**
      * Checks, if a given variable is an implementation of the
@@ -51,46 +66,6 @@ if (!function_exists('wp_rml_root_childs')) {
      */
     function wp_rml_root_childs() {
         return attachment\Structure::getInstance()->getTree();
-    }
-}
-
-if (!function_exists('wp_rml_select_tree')) {
-    /**
-     * Returns a .rml-root-list with an given tree. The selected folder id is
-     * saved automatically in a hidden input type.
-     * 
-     * <strong>Note #1</strong> The select tree has a javascript callback when it
-     * is initalized. You can bind it with this snippet:
-     * 
-     * <code>window.rml.hooks.register("tree/custom", function(obj, $) {
-     *       //if (obj.hasClass("my-extra-class")) {
-     *            alert(obj.html());
-     *       //}
-     * });</code>
-     * 
-     * <strong>Note #2</strong> If you want to use the select tree after a DOM change (ajax,
-     * for example: Modal dialog in visual editor) please call the javascript function
-     * <code>window.rml.library.customLists()</code> to affect the initalization referred to Note #1.
-     * 
-     * <strong>Note #3</strong> You can use a sub class of IFolder to customize your tree.
-     * 
-     * @param string $inputName the name for the hidden input type and the name for the list
-     * @param int $selected the selected folder id (saved also in hidden input type)
-     * @param IFolder $tree The root view
-     * @param string $extraClasses classes for the rml root list container
-     * @returns string Formatted HTML string
-     */
-    function wp_rml_select_tree($inputName, $selected, $tree = null, $extraClasses = "") {
-        $output = '<div class="aio-tree rml-root-list rml-custom-list ' . $extraClasses . '" id="rml-list-' . $inputName . '" data-id="' . $inputName . '">
-                <input type="hidden" name="' . $inputName . '" value="' . $selected . '" />
-                
-                <div class="aio-list-standard">
-                    <div class="aio-nodes">
-                        ' . attachment\Structure::getInstance()->getView()->treeHTML($selected, $tree, $inputName) . '
-                    </div>
-                </div>
-            </div>';
-        return $output;
     }
 }
 
@@ -158,9 +133,10 @@ if (!function_exists('wp_rml_update_count')) {
      * 
      * @param int[] $folders Array of folders ID, if null then all folders with cnt NULL are updated
      * @param int[] $attachments Array of attachments ID, is merged with $folders if given
+     * @param boolean $onlyReturn Set to true if you only want the SQL query
      */
-    function wp_rml_update_count($folders = null, $attachments = null) {
-        attachment\CountCache::getInstance()->updateCountCache($folders, $attachments);
+    function wp_rml_update_count($folders = null, $attachments = null, $onlyReturn = false) {
+        return attachment\CountCache::getInstance()->updateCountCache($folders, $attachments, $onlyReturn);
     }
 }
 
@@ -175,7 +151,7 @@ if (!function_exists('wp_rml_dropdown')) {
      * @returns string
      */
     function wp_rml_dropdown($selected, $disabled, $useAll = true) {
-        return attachment\Structure::getInstance()->getView()->optionsFasade($selected, $disabled, $useAll);
+        return attachment\Structure::getInstance()->getView()->dropdown($selected, $disabled, $useAll);
     }
 }
 
@@ -330,7 +306,7 @@ if (!function_exists('_wp_rml_root')) {
      * @returns int Folder id
      */
     function _wp_rml_root() {
-        /*f
+        /**
          * Get the root folder id which is showed in the folder tree.
          * 
          * @param {int} $folderId=-1 -1 is "/ Unorganized"
@@ -338,28 +314,28 @@ if (!function_exists('_wp_rml_root')) {
          * @example <caption>Get the root folder</caption>
          * $root = _wp_rml_root();
          * @returns {int} The root folder id
-         * @filter RML/ParentRoot
+         * @hook RML/ParentRoot
          */
         $result = apply_filters("RML/ParentRoot", -1, get_current_blog_id());
-        return $result;
+        return (int) $result;
     }
 }
 
-if (!function_exists('_wp_rml_active')) {
+if (!function_exists('wp_rml_active')) {
     /**
      * Checks if RML is active for the current user.
      * 
      * @returns boolean
-     * @since 3.2
+     * @since 4.0.2
      */
-    function _wp_rml_active() {
-        /*f
+    function wp_rml_active() {
+        /**
          * Checks if RML is active for the current user. Do not use this filter
-         * yourself, instead use _wp_rml_active() function!
+         * yourself, instead use wp_rml_active() function!
          * 
          * @param {boolean} True for activated and false for deactivated
          * @returns {boolean}
-         * @filter RML/Active
+         * @hook RML/Active
          * @since 3.2
          */
         $result = apply_filters("RML/Active", current_user_can("upload_files"));
@@ -498,5 +474,18 @@ if (!function_exists('wp_rml_create_all_children_sql')) {
      */
     function wp_rml_create_all_children_sql($folder, $includeSelf = false, $options = null) {
         return general\Util::getInstance()->createSQLForAllChildren($folder, $includeSelf, $options);
+    }
+}
+
+if (!function_exists('wp_rml_last_queried_folder')) {
+    /**
+     * Set or get the last queried folder.
+     * 
+     * @param int $folder The folder id (0 is handled as "All files" folder)
+     * @returns int
+     * @since 4.0.5
+     */
+    function wp_rml_last_queried_folder($folder = null) {
+        return attachment\Filter::getInstance()->lastQueriedFolder($folder);
     }
 }

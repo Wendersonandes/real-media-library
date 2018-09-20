@@ -2,31 +2,36 @@
 namespace MatthiasWeb\RealMediaLibrary\comp;
 use MatthiasWeb\RealMediaLibrary\general;
 use MatthiasWeb\RealMediaLibrary\attachment;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
- * This class handles the compatibility for poly lang.
+/**
+ * This class handles the compatibility for Poly Lang plugin.
  */
-class PolyLang extends general\Base {
+class PolyLang extends base\Base {
     
     private static $me = null;
     
     private $active = false;
     
-    /*
-     * Avoid duplicate call of move action
+    /**
+     * Avoid duplicate call of move action.
      */
     private $previousIds = null;
+    
+    /**
+     * Avoid duplicate call of move action.
+     */
     private $previousFolderId = null;
     
-    /*
-     * C'tor
-     */
     private function __construct($root = null) {
         // Silence is golden.
     }
     
+    /**
+     * Initialize actions.
+     */
     public function init() {
         $this->active = function_exists("pll_get_post_translations");
         
@@ -37,8 +42,8 @@ class PolyLang extends general\Base {
         }
     }
     
-    /*
-     * Register option for PolyLang
+    /**
+     * Register option for PolyLang.
      */
     public function options_register() {
         register_setting( 'media', 'rml_polylang_move', 'esc_attr' );
@@ -58,7 +63,7 @@ class PolyLang extends general\Base {
                 <label>' . __('If you move a file also move the associated translation files.', RML_TD) . '</label>';
     }
     
-    /*
+    /**
      * A file is moved (not copied) and then move also all the translations.
      */
     public function item_move_finished($folderId, $ids, $folder, $isShortcut) {
@@ -88,7 +93,7 @@ class PolyLang extends general\Base {
         }
     }
     
-    /*
+    /**
      * New translation created => synchronize with original post.
      * Then reset the count cache for the unogranized folder.
      */

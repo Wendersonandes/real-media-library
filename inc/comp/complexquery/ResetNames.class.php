@@ -24,7 +24,6 @@ class ResetNames extends ComplexQuery {
     }
 
     public function fallback() {
-        // @TODO when requested and return "Failed" instead in "reset" functionality (Util)
         return false;
     }
 }

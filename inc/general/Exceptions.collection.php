@@ -4,12 +4,9 @@ use MatthiasWeb\RealMediaLibrary\attachment;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
+/**
  * When we want to set parent of a folder and the given name
  * already exists in the parent folder.
- * 
- * @see Creatable::setParent()
- * @see Creatable::setName()
  */
 class FolderAlreadyExistsException extends \Exception {
     private $parent; // Parent ID
@@ -21,8 +18,10 @@ class FolderAlreadyExistsException extends \Exception {
         $this->name = $name;
     }
     
-    /*
+    /**
      * Get the folder of the children in this parent.
+     * 
+     * @returns api\IFolder
      */
     public function getFolder() {
         $parent = wp_rml_get_object_by_id($this->getParentId());

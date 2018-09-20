@@ -3,21 +3,22 @@ namespace MatthiasWeb\RealMediaLibrary\order;
 use MatthiasWeb\RealMediaLibrary\general;
 use MatthiasWeb\RealMediaLibrary\metadata;
 use MatthiasWeb\RealMediaLibrary\api;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
+/**
  * Implements a order by field.
- * 
- * @see interface IMetadata for more details
  */
-class GalleryOrder extends general\Base implements api\IMetadata {
+class GalleryOrder extends base\Base {
+    
+    private static $me = null;
+
+    private function __construct() {
+        // Silence is golden.
+    }
     
     static $cachedOrders = null;
-    
-    public function __construct() {
-        add_action("deleted_realmedialibrary_meta",     array($this, "deleted_realmedialibrary_meta"), 10, 3);
-    }
     
     /**
      * Delete the orderAutomatically metadata when deleting the order
@@ -28,16 +29,15 @@ class GalleryOrder extends general\Base implements api\IMetadata {
         }
     }
 
-    /*
+    /**
      * Start to order the given folder by a given order type.
      * 
-     * @param $fid The folder id
-     * @param $orderby The ordertype key
-     * @return boolean
-     * @see this::getAvailableOrders
+     * @param int $fid The folder id
+     * @param string $orderby The ordertype key
+     * @returns boolean
      */
-    public static function order($fid, $orderby, $writeMetadata = true) {
-        $orders = self::getAvailableOrders();
+    public function order($fid, $orderby, $writeMetadata = true) {
+        $orders = $this->getAvailableOrders();
         $core = general\Core::getInstance();
         $core->debug("Try to order the folder $fid by $orderby...", __METHOD__);
         if (in_array($orderby, array_keys($orders))) {
@@ -76,12 +76,12 @@ class GalleryOrder extends general\Base implements api\IMetadata {
         }
     }
     
-    /*
-     * Get all available order by methods.
+    /**
+     * Get all available order methods.
      * 
-     * @return Localized array
+     * @returns array
      */
-    public static function getAvailableOrders() {
+    public function getAvailableOrders($asMap = false) {
         if (self::$cachedOrders === null) {
             $orders = array(
                 "title_asc" => array(
@@ -119,66 +119,22 @@ class GalleryOrder extends general\Base implements api\IMetadata {
             );
             self::$cachedOrders = apply_filters("RML/Order/Orderby", $orders);
         }
+        
+        if ($asMap) {
+            $sortables = array();
+            foreach (self::$cachedOrders as $key => $value) {
+                $sortables[$key] = $value["label"];
+            }
+            return $sortables;
+        }
+        
         return self::$cachedOrders;
     }
     
-    /*
-     * The input field.
-     *
-     * @see interface IMetadata
-     */
-    public function content($content, $folder) {
-        if (is_rml_folder($folder) && $folder->isContentCustomOrderAllowed()) {
-            $content .= '<tr>
-                <th scope="row">' . __('Order') . '</th>
-                <td>
-                    <select>';
-            
-            $order = get_media_folder_meta($folder->getId(), "orderby", true);
-            $orderAutomatically = get_media_folder_meta($folder->getId(), "orderAutomatically", true);
-            foreach (self::getAvailableOrders() as $key => $value) {
-                $content .= '<option value="' . $key . '" ' . ($order === $key ? 'selected="selected"' : '') . '>' . $value["label"] . '</option>';
-            }
-            
-            $content .= '
-                    </select>
-                    <a class="button actionbutton" id="rml-meta-action-order-by" data-nonce-key="attachmentOrderBy" 
-                        data-action="rml_attachment_order_by" 
-                        data-method="' . $folder->getId() . '" href="#">' . __('Apply', RML_TD) . '</a>
-                    <br />
-                    <label style="font-size:10px;">
-                        <input name="orderAutomatically" value="1" type="checkbox" ' . checked($orderAutomatically, true, false) . '/> ' . __('Apply order automatically (please "Apply" order then save)', RML_TD) . '
-                    </label>
-                </td>
-            </tr>';
+    public static function getInstance() {
+        if (self::$me == null) {
+            self::$me = new GalleryOrder();
         }
-        
-        return $content;
-    }
-    
-    /*
-     * Save the general infos: Name
-     * 
-     * @see interface IMetadata
-     */
-    public function save($response, $folder) {
-        $fid = $folder === null ? _wp_rml_root() : $folder->getId();
-        $orderAutomatically = isset($_POST["orderAutomatically"]) && $_POST["orderAutomatically"] == "1";
-        $orderby = get_media_folder_meta($fid, "orderby", true);
-        if ($orderAutomatically && empty($orderby)) {
-            $response["errors"][] = __("Please apply an order to the folder.", RML_TD);
-            return $response;
-        }
-        update_media_folder_meta($fid, "orderAutomatically", $orderAutomatically);
-        return $response;
-    }
-    
-    /*
-     * The general scripts and styles.
-     *
-     * @see interface IMetadata
-     */
-    public function scripts() {
-        // Silence is golden.
+        return self::$me;
     }
 }

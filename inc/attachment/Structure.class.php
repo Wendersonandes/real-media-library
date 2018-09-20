@@ -3,45 +3,44 @@ namespace MatthiasWeb\RealMediaLibrary\attachment;
 use MatthiasWeb\RealMediaLibrary\general;
 use MatthiasWeb\RealMediaLibrary\folder;
 use MatthiasWeb\RealMediaLibrary\api;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
+/**
  * This class handles all hooks and functions for the structur.
  * If something will print out, this is a fasade-wrapper function
  * for the class general\View (stored in private $view).
  */
-class Structure extends general\Base implements api\IStructure {
+class Structure extends base\Base implements api\IStructure {
     
     private static $me = null;
     
-    /*
+    /**
      * The structure should be accessible within one
      * or more blogs. For those purposes use the wp standard
      * method switch_to_blog();
      * 
      * This is an array of Structure objects.
-     * 
-     * @see self::getInstance()
      */
     private static $blogs = array();
     
-    /*
+    /**
      * The root folder ID. Can only be set by the constructor!
      */
     private $root;
     
-    /*
+    /**
      * Array of Databased readed rows
      */
     private $rows;
     
-    /*
+    /**
      * $rows formed to folder\Folder objects
      */
     private $parsed;
     
-    /*
+    /**
      * Tree of folder\Folder objects. @see $childrens of folder\Folder object.
      */
     private $tree;
@@ -51,11 +50,9 @@ class Structure extends general\Base implements api\IStructure {
      */
     private $view;
     
-    /*
+    /**
      * Checks, if the folder tree is already loaded and do the initial
      * load if needed by an function. So, RML can guarantee lazy loading.
-     * 
-     * @see this::initialLoad()
      */
     private $hasInitialLoad = false;
     
@@ -93,21 +90,21 @@ class Structure extends general\Base implements api\IStructure {
         }
     }
     
-    /*
+    /**
      * Fetching all available folders into an array.
      */
     private function fetch() {
         global $wpdb;
         
-        $table_name = general\Core::getInstance()->getTableName();
+        $table_name = $this->getTableName();
         
-        /*f
+        /**
          * Modify the tree SQL select fields statement. Just push your
          * fields to select custom fields.
          * 
          * @param {array} $fields The standard RML fields
          * @param {IStructure} $structure The structure
-         * @filter RML/Tree/SQLStatement/SELECT
+         * @hook RML/Tree/SQLStatement/SELECT
          * @returns {array}
          */
         $fields = join(", ", apply_filters("RML/Tree/SQLStatement/SELECT", array(
@@ -116,26 +113,33 @@ class Structure extends general\Base implements api\IStructure {
             // Count images for this folder
             "IFNULL(tn.cnt, (
                 " . CountCache::getInstance()->getSingleCountSql() . "
-            )) AS cnt_result"
+            )) AS cnt_result",
+            "rml_meta_orderby.meta_value AS lastOrderBy",
+            "rml_meta_orderAutomatically.meta_value AS orderAutomatically"
         ), $this));
         
-        /*f
+        /**
          * Modify the tree SQL select join statement. Just push your
          * joins to $fields array.
          * 
          * @param {array} $fields The standard RML fields
          * @param {IStructure} $structure The structure
-         * @filter RML/Tree/SQLStatement/JOIN
+         * @hook RML/Tree/SQLStatement/JOIN
          * @returns {array} $fields
          */
-        $joins = join(" ", apply_filters("RML/Tree/SQLStatement/JOIN", array(), $this));
+        $joins = join(" ", apply_filters("RML/Tree/SQLStatement/JOIN", array(
+            // The last order by, saved in folder meta as "orderby"
+            "LEFT JOIN " . $this->getTableName('meta') . " rml_meta_orderby ON rml_meta_orderby.realmedialibrary_id = tn.ID AND rml_meta_orderby.meta_key =  'orderby'",
+            // Determines, if the orderby should be applied automatically, saved in folder meta as "orderAutomatically"
+            "LEFT JOIN " . $this->getTableName('meta') . " rml_meta_orderAutomatically ON rml_meta_orderAutomatically.realmedialibrary_id = tn.ID AND rml_meta_orderAutomatically.meta_key =  'orderAutomatically'"
+        ), $this));
 
-        /*f
+        /**
          * Modify the full tree SQL statement.
          * 
          * @param {string} $sql The sql query
          * @param {IStructure} $structure The structure
-         * @filter RML/Tree/SQLStatement
+         * @hook RML/Tree/SQLStatement
          * @returns {string}
          */
         $sqlStatement = apply_filters("RML/Tree/SQLStatement", array("
@@ -146,12 +150,12 @@ class Structure extends general\Base implements api\IStructure {
         
         $this->rows = $wpdb->get_results($sqlStatement[0]);
         
-        /*f
+        /**
          * The tree content is loaded.
          * 
          * @param {object[]} $rows The SQL results
          * @param {IStructure} $structure The structure
-         * @filter RML/Tree/SQLRows
+         * @hook RML/Tree/SQLRows
          * @returns {object[]}
          */
         $this->rows = apply_filters("RML/Tree/SQLRows",  $this->rows, $this);
@@ -159,13 +163,18 @@ class Structure extends general\Base implements api\IStructure {
         $this->parse();
     }
     
-    /*
+    /**
      * This functions parses the readed rows into folder objects.
      * It also handles the `cnt` cache for the attachments in this folder.
-     * 
-     * @see CountCache::updateCountCache
      */
     private function parse() {
+        /**
+         * Use this hook to register your own creatables with the help of
+         * wp_rml_register_creatable().
+         * 
+         * @hook RML/Creatable/Register
+         */
+        do_action('RML/Creatable/Register');
         if (!empty($this->rows)) {
             $noCntCache = false;
             foreach ($this->rows as $key => $value) {
@@ -228,7 +237,7 @@ class Structure extends general\Base implements api\IStructure {
             }
         }
         
-        /*f
+        /**
          * When a folder is not found by an absolute path this filter is
          * called and looks up for folders which are perhaps handled by other
          * structures.
@@ -236,7 +245,7 @@ class Structure extends general\Base implements api\IStructure {
          * @param {IFolder} $folder The folder (null if not found)
          * @param {integer} $id The searched Id
          * @param {IStructure} $structure The structure
-         * @filter RML/Tree/ResolveById
+         * @hook RML/Tree/ResolveById
          * @returns {IFolder} The found folder or null if not found
          * @since 3.3.1
          */
@@ -252,7 +261,7 @@ class Structure extends general\Base implements api\IStructure {
             }
         }
         
-        /*f
+        /**
          * When a folder is not found by an absolute path this filter is
          * called and looks up for folders which are perhaps handled by other
          * structures.
@@ -260,7 +269,7 @@ class Structure extends general\Base implements api\IStructure {
          * @param {IFolder} $folder The folder (null if not found)
          * @param {string} $path The searched path
          * @param {IStructure} $structure The structure
-         * @filter RML/Tree/ResolveByAbsolutePath
+         * @hook RML/Tree/ResolveByAbsolutePath
          * @returns {IFolder} The found folder or null if not found
          * @since 3.3.1
          */
@@ -286,19 +295,55 @@ class Structure extends general\Base implements api\IStructure {
     }
     
     // Documentated in IStructure
+    public function getPlainTree() {
+        $result = array();
+        $tree = $this->getTree();
+        if (is_array($tree)) {
+            foreach ($tree as $obj) {
+                $result[] = $obj->getPlain(true);
+            }
+        }
+        return $result;
+    }
+    
+    // Documentated in IStructure
     public function getCntAttachments() {
         if (has_filter("RML/Tree/CountAttachments")) {
-            /*f
+            /**
              * Counts all attachments which are available in the structure.
              * 
              * @param {integer} $count The count
              * @param {object} $structure The structure class
              * @returns {integer} The count
-             * @filter RML/Tree/CountAttachments
+             * @hook RML/Tree/CountAttachments
              */
             return apply_filters("RML/Tree/CountAttachments", 0, $this);
         }
-        return wp_count_posts('attachment')->inherit;
+        return (int) wp_count_posts('attachment')->inherit;
+    }
+    
+    /**
+     * Get all folder counts.
+     * 
+     * @returns Array<string|int,int>
+     */
+    public function getFolderCounts() {
+        $result = array();
+        
+        // Default folder counts
+        $root = _wp_rml_root();
+        $result["all"] = $this->getCntAttachments();
+        $result[$root] = $this->getCntRoot();
+        
+        // Iterate through our folders
+        $folders = $this->getParsed();
+        if (is_array($folders)) {
+            foreach ($folders as $value) {
+                $id = $value->getId();
+                $result[$id] = $value->getCnt();
+            }
+        }
+        return $result;
     }
     
     // Documentated in IStructure
@@ -311,6 +356,9 @@ class Structure extends general\Base implements api\IStructure {
         return $result >= 0 ? $result : 0;
     }
     
+    /**
+     * Get the view class instance.
+     */
     public function getView() {
         return $this->view;
     }

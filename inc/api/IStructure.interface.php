@@ -82,6 +82,14 @@ interface IStructure {
     public function getTree();
     
     /**
+     * Get all SQL query results placed to a tree. It is fully resolved with all hierarchical
+     * plain objects of the folders.
+     * 
+     * @return object[]
+     */
+    public function getPlainTree();
+    
+    /**
      * Get the attachment count for this structure.
      * 
      * @returns integer Count

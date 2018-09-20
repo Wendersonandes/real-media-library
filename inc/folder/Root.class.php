@@ -6,12 +6,9 @@ use MatthiasWeb\RealMediaLibrary\order;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
- * This class creates a root object. This root object can not be created! There exists
- * only once of this type.
- * 
- * @see Creatable
- * @type "4" (4 for backwards-compatibility)
+/**
+ * This class creates a root object. (Type 4)
+ * See parent classes / interfaces for better documentation.
  */
 class Root extends order\Sortable {
     
@@ -53,12 +50,6 @@ class Root extends order\Sortable {
         return attachment\Structure::getInstance()->getTree();
     }
     
-    /*
-     * Checks, if a children type is allowed here.
-     * 
-     * @return Array with allowed types or TRUE for all types allowed
-     * @filter RML/Folder/Types/4
-     */
     public function getAllowedChildrenTypes() {
         return apply_filters("RML/Folder/Types/" . $this->getType(), array(RML_TYPE_FOLDER, RML_TYPE_COLLECTION)); // already documentated
     }
@@ -72,15 +63,11 @@ class Root extends order\Sortable {
     }
     
     public function getTypeName($default = null) {
-        return parent::getTypeName($default === null ? __('Uncategorized', RML_TD) : $default);
+        return parent::getTypeName($default === null ? __('Unorganized', RML_TD) : $default);
     }
     
     public function getTypeDescription($default = null) {
-        return parent::getTypeDescription($default === null ? __('Uncategorized is the same as a root folder. Here you can find all files which are not assigned to a folder.', RML_TD) : $default);
-    }
-    
-    public function getTypeIcon($default = null) {
-        return parent::getTypeIcon($default === null ? '<i class="fa fa-dot-circle-o"></i>' : $default);
+        return parent::getTypeDescription($default === null ? __('Unorganized is the same as a root folder. Here you can find all files which are not assigned to a folder.', RML_TD) : $default);
     }
     
     public static function getInstance() {

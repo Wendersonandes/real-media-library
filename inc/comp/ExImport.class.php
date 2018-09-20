@@ -2,24 +2,31 @@
 namespace MatthiasWeb\RealMediaLibrary\comp;
 use MatthiasWeb\RealMediaLibrary\general;
 use MatthiasWeb\RealMediaLibrary\attachment;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
+/**
  * Import and export functionality.
  */
-class ExImport extends general\Base {
+class ExImport extends base\Base {
     
     private static $me = null;
     
     private $idOffset = null;
     
+    /**
+     * Column names for import and export.
+     */
     private $columns = array();
     
     private function __construct() {
         $this->columns = explode(",", "name,ord,type,restrictions,contentCustomOrder,importId");
     }
     
+    /**
+     * Register options in media settings.
+     */
     public function options_register() {
         add_settings_field(
             'rml_button_export',
@@ -41,15 +48,8 @@ class ExImport extends general\Base {
     }
     
     public function html_rml_button_export() { 
-        echo '<button class="button button-primary rml-button-wipe"
-                data-nonce-key="wipe" 
-                data-action="rml_export" 
-                data-method="">' . __('Export', RML_TD) . '</button>
-        <button class="button rml-button-wipe"
-                data-nonce-key="wipe"
-                data-http-method="POST"
-                data-action="rml_import" 
-                data-method="">' . __('Import', RML_TD) . '</button>
+        echo '<a class="rml-rest-button button button-primary" data-url="export" data-method="GET">' . __('Export', RML_TD) . '</a>
+        <a class="rml-rest-button button" data-url="import" data-method="POST">' . __('Import', RML_TD) . '</a>
         <p class="description" style="margin-bottom:10px">' . __('The export process will respect all available folders. The import process will not touch your existing structure and please make sure the import data does not have duplicate names with your current hierarchy.', RML_TD) . '</p>
         <div id="rml_export_data" style="float:left;margin-right: 10px;"><div>' . __('Exported data:', RML_TD) . '</div><textarea></textarea></div>
         <div id="rml_import_data" style="float:left;"><div>' . __('Import data:', RML_TD) . '</div><textarea></textarea></div>';
@@ -57,15 +57,14 @@ class ExImport extends general\Base {
     
     public function html_rml_button_import_cats() {
         foreach ($this->getHierarchicalTaxos() as $tax) {
-            echo '<button class="button rml-button-wipe"
-                    data-nonce-key="wipe" 
-                    data-http-method="POST"
-                    data-action="rml_import" 
-                    data-method="' . $tax . '">' . __('Import', RML_TD) . ' \'' . $tax . '\'</button>
+            echo '<a class="rml-rest-button button" data-url="import/taxonomy" data-method="POST" data-taxonomy="' . esc_attr($tax) . '">' . __('Import', RML_TD) . ' \'' . $tax . '\'</a>
             <p class="description">' . __('Imports categories and post relations.', RML_TD) . '</p>';
         }
     }
     
+    /**
+     * Import a taxonomy with relationships.
+     */
     public function importTaxonomy($tax) {
         global $wpdb;
         
@@ -98,7 +97,7 @@ class ExImport extends general\Base {
         attachment\CountCache::getInstance()->resetCountCache();
     }
     
-    /*
+    /**
      * Search the wp_realmedialibrary_posts table for importData contains ","
      * and then create the shortcuts for the splitted "," folders.
      */
@@ -133,7 +132,7 @@ class ExImport extends general\Base {
         }
     }
     
-    /*
+    /**
      * Import a tree with __children array and __metas array recursively.
      * 
      * @param array $tree The tree, for example from $this::getFolders()
@@ -146,7 +145,7 @@ class ExImport extends general\Base {
         wp_rml_structure_reset();
     }
     
-    /*
+    /**
      * Get the folder tree of a taxonomy for import process.
      * 
      * @returns array
@@ -164,7 +163,7 @@ class ExImport extends general\Base {
         return $util->clearTree($tree, array("parent"), "__children");
     }
     
-    /*
+    /**
      * Get the folder tree for import process.
      * 
      * @returns array
@@ -201,10 +200,10 @@ class ExImport extends general\Base {
         return $util->clearTree($tree, array("id", "parent"), '__children');
     }
     
-    /*
+    /**
      * Get the hierarchical taxonomies for the media taxonomy.
      * 
-     * @returns String
+     * @returns string
      */
     public function getHierarchicalTaxos() {
         // Fetch the taxonomies which are able to filter
@@ -218,7 +217,7 @@ class ExImport extends general\Base {
         return $taxos;
     }
     
-    /*
+    /**
      * Clear importData and importId in posts and folder table.
      */
     private function _clear() {
@@ -230,7 +229,7 @@ class ExImport extends general\Base {
         $wpdb->query("UPDATE $table_name_posts SET importData = NULL");
     }
     
-    /*
+    /**
      * Import a tree with __children array and __metas array recursively.
      * 
      * @param array $tree The tree, for example from $this::getFolders()

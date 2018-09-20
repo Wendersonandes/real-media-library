@@ -1,21 +1,22 @@
 <?php
 namespace MatthiasWeb\RealMediaLibrary\attachment;
 use MatthiasWeb\RealMediaLibrary\general;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
+/**
  * Handle the metadata and attached file for shortcuts.
  */
-class Shortcut extends general\Base {
+class Shortcut extends base\Base {
 	private static $me = null;
     
-    /*
-     * @see this::create()
+    /**
+     * @see Shortcut::create()
      */
     private $lockCreate = false;
     
-    /*
+    /**
      * @see this::create()
      * @see this::getLastIds()
      * @see this::_resetLastIds()
@@ -26,11 +27,11 @@ class Shortcut extends general\Base {
         // Silence is golden.
     }
     
-    /*
+    /**
      * Creates a shortcut.
      * 
-     * @api wp_rml_create_shortcuts
-     * @api _wp_rml_synchronize_attachment
+     * @see wp_rml_create_shortcuts
+     * @see _wp_rml_synchronize_attachment
      */
     public function create($postId, $fid, $isShortcut = false) {
         global $wpdb;
@@ -63,6 +64,7 @@ class Shortcut extends general\Base {
                 "guid" => $wp_post->guid . "?sc=" . $postId,
                 "post_mime_type" => $wp_post->post_mime_type,
                 "post_title" => $wp_post->post_title,
+                "post_content" => "",
                 "post_excerpt" => $wp_post->post_excerpt, // Caption
                 "post_content" => $wp_post->post_content, // Description
                 "post_status" => "inherit"
@@ -99,29 +101,32 @@ class Shortcut extends general\Base {
             $attachmentId, $fid, $isShortcut);
         $wpdb->query($sql);
         
-        /*a
+        /**
          * An attachment is moved to a specific folder.
          * 
          * @param {int} $postId The post id of the attachment
          * @param {int} $oldFolder The old folder id of the attachment
          * @param {int} $fid The new folder id of the attachment
          * @param {boolean} $isShortcut If true the attachment was copied to a folder
-         * @action RML/Item/Moved
+         * @hook RML/Item/Moved
          */
         do_action("RML/Item/Moved", $postId, $oldFolder, $fid, $isShortcut);
         return true;
     }
     
+    /**
+     * Check if a meta key is inheritable.
+     * 
+     * @returns boolean
+     */
     private function isInheritableMetaKey($meta_key, $withAttached = true) {
         return $meta_key === "_wp_attachment_metadata" || ($meta_key === "_wp_attached_file" && $withAttached) || $meta_key === "_wp_attachment_backup_sizes";
     }
     
-    /*
+    /**
      * If it is a shortcut, read the metadata from the source file.
      * It also handles the wp_delete_attachment process to avoid to delete
      * the source files if shortcut.
-     * 
-     * @filter get_post_metadata
      */
     public function get_post_metadata($check, $object_id, $meta_key, $single) {
         if ($this->isInheritableMetaKey($meta_key) && ($source_id = wp_attachment_is_shortcut($object_id, true))) {
@@ -141,10 +146,8 @@ class Shortcut extends general\Base {
         return $check;
     }
     
-    /*
+    /**
      * Avoids to generate own meta data for shortcuts.
-     * 
-     * @filter add_post_metadata
      */
     public function add_post_metadata($check, $object_id, $meta_key, $meta_value, $unique) {
         if ($this->isInheritableMetaKey($meta_key) && ($source_id = wp_attachment_is_shortcut($object_id, true))) {
@@ -154,10 +157,8 @@ class Shortcut extends general\Base {
         return $check;
     }
     
-    /*
+    /**
      * Avoids to generate own meta data for shortcuts.
-     * 
-     * @filter update_post_metadata
      */
     public function update_post_metadata($check, $object_id, $meta_key, $meta_value, $prev_value) {
         if ($this->isInheritableMetaKey($meta_key) && ($source_id = wp_attachment_is_shortcut($object_id, true))) {
@@ -168,14 +169,14 @@ class Shortcut extends general\Base {
         return $check;
     }
     
-    /*
-     * @api wp_rml_created_shortcuts_last_ids
+    /**
+     * @see wp_rml_created_shortcuts_last_ids()
      */
     public function getLastIds() {
         return is_array($this->lastIds) ? $this->lastIds : ( $this->lastIds = array() );
     }
     
-    /*
+    /**
      * Delete all associated shortcuts.
      */
     public function delete_attachment($postId) {
@@ -188,10 +189,8 @@ class Shortcut extends general\Base {
         }
     }
     
-    /*
+    /**
      * This function should only be used in the Creatable::insert() function.
-     * 
-     * @private
      */
     public function _resetLastIds() {
         $this->lastIds = array();

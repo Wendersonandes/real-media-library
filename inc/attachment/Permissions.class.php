@@ -2,24 +2,24 @@
 namespace MatthiasWeb\RealMediaLibrary\attachment;
 use MatthiasWeb\RealMediaLibrary\general;
 use MatthiasWeb\RealMediaLibrary\folder;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-/*
+/**.
+ * Folders permission handling.
+ * 
  * @see folder\Folder::$restrictions
  * @see folder\Folder::isRestrictFor
  * @see Structure::createFolder
  */
-class Permissions extends general\Base {
+class Permissions extends base\Base {
     
     private static $me = null;
     
-    /*
+    /**
      * Restrict to insert/upload new attachments, automatically moved to root if upload
-     * Restrict to move files outside of a folder
-     * 
-     * @filter RML/Validate/Insert
-     * @see folder\Folder::insert
+     * Restrict to move files outside of a folder.
      */
     public static function insert($errors, $id, $folder) {
         if (is_rml_folder($folder) && $folder->isRestrictFor("ins")) {
@@ -39,11 +39,8 @@ class Permissions extends general\Base {
         return $errors;
     }
     
-    /*
-     * Restrict to create new subfolders
-     * 
-     * @filter RML/Validate/Create
-     * @see Structure::createFolder
+    /**
+     * Restrict to create new subfolders.
      */
     public static function create($errors, $name, $parent, $type) {
         $folder = wp_rml_get_by_id($parent, null, true);
@@ -53,11 +50,8 @@ class Permissions extends general\Base {
         return $errors;
     }
     
-    /*
-     * Restrict to create new subfolders
-     * 
-     * @filter RML/Validate/Delete
-     * @see Structure::deleteFolder
+    /**
+     * Restrict to create new subfolders.
      */
     public static function deleteFolder($errors, $id, $folder) {
         if (is_rml_folder($folder) && $folder->isRestrictFor("del")) {
@@ -66,38 +60,14 @@ class Permissions extends general\Base {
         return $errors;
     }
     
-    /*
-     * Restrict to rename a folder
-     * 
-     * @filter RML/Validate/Rename
-     * @see folder\Folder::setName
+    /**
+     * Restrict to rename a folder.
      */
     public static function setName($errors, $name, $folder) {
         if (is_rml_folder($folder) && $folder->isRestrictFor("ren")) {
             $errors[] = __("You are not allowed to rename this folder.", RML_TD);
         }
         return $errors;
-    }
-    
-    /*
-     * Add mandatory classes to the <li> object to apply child permissions.
-     * 
-     * @filter RML/Folder/TreeNodeLi/Class
-     */
-    public function liClass($classes, $folder) {
-        /*
-         * Restrict hierarchical change.
-         * 
-         * @see $liClasses
-         */
-        if ($folder->isRestrictFor("rea")) {
-            $classes[] = "aio-restrict-hierarchical-change";
-        }
-        
-        //if ($folder->getRestrictionsCount() > 0 && !($folder->getRestrictionsCount() === 1 && $folder->isRestrictFor("rea"))) {
-        //    $classes[] = "aio-restrict";
-        //}
-        return $classes;
     }
 
     public static function getInstance() {
