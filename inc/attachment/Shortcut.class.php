@@ -117,7 +117,7 @@ class Shortcut extends base\Base {
     /**
      * Check if a meta key is inheritable.
      * 
-     * @returns boolean
+     * @return boolean
      */
     private function isInheritableMetaKey($meta_key, $withAttached = true) {
         return $meta_key === "_wp_attachment_metadata" || ($meta_key === "_wp_attached_file" && $withAttached) || $meta_key === "_wp_attachment_backup_sizes";

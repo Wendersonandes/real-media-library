@@ -32,7 +32,7 @@ class Folder extends order\Sortable {
          * 
          * @param {int[]} $allowed The allowed folder types
          * @hook RML/Folder/Types/$type
-         * @returns {int[]} The allowed folder types
+         * @return {int[]} The allowed folder types
          */
         return apply_filters("RML/Folder/Types/" . $this->getType(), array(RML_TYPE_FOLDER, RML_TYPE_COLLECTION));
     }

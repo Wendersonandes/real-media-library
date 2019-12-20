@@ -12,6 +12,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
  */
 abstract class Sortable extends folder\Creatable {
     
+    static $cachedContentOrders = null;
+    
     public function __construct($id, $parent = -1, $name = "", $slug = "", $absolute = "", $order = -1, $cnt = 0, $row = array()) {
         $this->contentCustomOrder = isset($row->contentCustomOrder) ? $row->contentCustomOrder : "2";
         
@@ -28,6 +30,30 @@ abstract class Sortable extends folder\Creatable {
         }else if ($contentCustomOrder == "1") { // Reindex
             $this->contentReindex();
         }
+        
+        $orderAutomatically = $this->getRowData('orderAutomatically');
+        if (!empty($orderAutomatically)) {
+            throw new \Exception(__('This folder has an automatic order, please deactivate that first.', RML_TD));
+        }
+        
+        /**
+         * Allow changing the post ids for the content order process. This is for example
+         * necessery when using a multilingual plugin like WPML so the order is always synced
+         * when using RML/Sortable/PostsClauses.
+         * 
+         * @param {array} $ids The ids for attachment, next (can be false) and lastInView (can be false)
+         * @return {array} $ids
+         * @hook RML/Sortable/Ids
+         * @since 4.0.8
+         */
+        $changed = apply_filters("RML/Sortable/Ids", array(
+            'attachment' => $attachmentId,
+            'next' => $nextId,
+            'lastInView' => $lastIdInView
+        ));
+        $attachmentId = $changed['attachment'];
+        $nextId = $changed['next'];
+        $lastIdInView = $changed['lastInView'];
         
         // Process
         global $wpdb;
@@ -49,6 +75,10 @@ abstract class Sortable extends folder\Creatable {
             $this->debug("Order the attachment to the end and use the new order value $newOrder...", __METHOD__);
         }else{
             $_newOrder = $this->getContentNrOf($nextId); // Temp save in this, because the query can fail
+            if ($_newOrder === false) {
+                $_newOrder = $this->getContentAggregationNr("MAX") + 1; // Put to last
+            }
+            
             $this->debug("Order the attachment before $nextId and change the order value $_newOrder for the moved attachment....", __METHOD__);
             
             // Count up the next ids
@@ -59,14 +89,77 @@ abstract class Sortable extends folder\Creatable {
         // Update the new order number
         if (isset($newOrder) && $newOrder > 0) {
             $wpdb->query($wpdb->prepare("UPDATE $table_name SET nr=%d WHERE fid=%d AND attachment=%d", $newOrder, $this->id, $attachmentId));
-            delete_media_folder_meta($this->id, "orderby");
             $this->debug("Successfully updated the order of the attachmnet", __METHOD__);
             
             // Save to old custom order
             $wpdb->query($wpdb->prepare("UPDATE " . $table_name . " SET oldCustomNr = nr WHERE fid = %d;", $this->id));
             $this->debug("Successfully updated the old custom nr of the folder", __METHOD__);
+            
+            /**
+             * This action is fired after an item in a folder got ordered by drag&drop.
+             * 
+             * @param {int} $fid The folder id
+             * @param {int} $attachmentId The attachment id which got updated
+             * @param {int} $newOrder The new "nr" value
+             * @hook RML/Item/DragDrop
+             * @since 4.5.3
+             */
+            do_action("RML/Item/DragDrop", $this->id, $attachmentId, $newOrder);
         }else{
             throw new \Exception(__("Something went wrong.", RML_TD));
+        }
+    }
+    
+    // Documentated in IFolderContent
+    public function contentOrderBy($orderby, $writeMetadata = true) {
+        $orders = self::getAvailableContentOrders();
+        $fid = $this->getId();
+        $this->debug("Try to order the folder $fid by $orderby...", __METHOD__);
+        if (in_array($orderby, array_keys($orders))) {
+            global $wpdb;
+            
+            // Get order
+            $split = explode("_", $orderby);
+            $order = $orders[$orderby];
+            $direction = $split[1];
+            $table_name = $this->getTableName("posts");
+            
+            // Run SQL
+            $sql = $wpdb->prepare("UPDATE $table_name AS rmlo2
+                LEFT JOIN (
+                	SELECT @rownum := @rownum + 1 AS nr, t.ID
+                	FROM ( SELECT wp.ID
+                		FROM $table_name AS rmlo
+                		INNER JOIN $wpdb->posts AS wp ON rmlo.attachment = wp.id AND wp.post_type = \"attachment\"
+                		WHERE rmlo.fid = %d
+                		ORDER BY " . $order["sqlOrder"] . " $direction ) AS t, (SELECT @rownum := 0) AS r
+                ) AS rmlonew ON rmlo2.attachment = rmlonew.ID
+                SET rmlo2.nr = rmlonew.nr
+                WHERE rmlo2.fid = %d", $fid, $fid);
+            $wpdb->query($wpdb->prepare("UPDATE " . $this->getTableName() . " SET contentCustomOrder=1 WHERE id = %d", $fid));
+            $wpdb->query($sql);
+            
+            // Save in the metadata
+            if ($writeMetadata) {
+                update_media_folder_meta($fid, "orderby", $orderby);
+            }
+            $this->debug("Successfully ordered folder", __METHOD__);
+            
+            /**
+             * This action is fired after items ins a folder got ordered by criteria.
+             * 
+             * @param {int} $fid The folder id
+             * @param {string} $orderby Orderby column
+             * @param {string} $order 'ASC' or 'DESC'
+             * @hook RML/Folder/OrderBy
+             * @since 4.5.3
+             */
+            do_action("RML/Folder/OrderBy", $fid, $split[0], $split[1]);
+            
+            return true;
+        }else{
+            $this->debug("'$orderby' is not a valid order...", __METHOD__);
+            return false;
         }
     }
     
@@ -152,9 +245,6 @@ abstract class Sortable extends folder\Creatable {
             return false;
         }
         
-        global $wpdb;
-        $wpdb->query($wpdb->prepare("UPDATE " . $this->getTableName("posts") . " SET nr=NULL, oldCustomNr=NULL WHERE fid=%d", $this->id));
-        $wpdb->query($wpdb->prepare("UPDATE " . $this->getTableName() . " SET contentCustomOrder=0 WHERE id=%d", $this->id));
         delete_media_folder_meta($this->id, "orderby");
         $this->debug("Deleted order of the folder $this->id", __METHOD__);
         return true;
@@ -164,7 +254,7 @@ abstract class Sortable extends folder\Creatable {
     public function contentRestoreOldCustomNr() {
         global $wpdb;
         $wpdb->query($wpdb->prepare("UPDATE " . $this->getTableName("posts") . " SET nr = oldCustomNr WHERE fid=%d;", $this->id));
-        delete_media_folder_meta($this->id, "orderby");
+        delete_media_folder_meta($this->id, "orderAutomatically");
         $this->debug("Restored the order of folder $this->id to the old custom order", __METHOD__);
         return true;
     }
@@ -196,46 +286,19 @@ abstract class Sortable extends folder\Creatable {
         }
         
         global $wpdb;
-        $sql = $wpdb->prepare("SELECT o.attachment
-                        FROM (SELECT *
-                            FROM " . $this->getTableName("posts") . "
-                            WHERE fid=%d ORDER BY nr) AS o
-                        WHERE o.nr > (SELECT o2.nr FROM (SELECT nr FROM " . $this->getTableName("posts") . " WHERE attachment=%d AND fid=%d) AS o2)
-                        LIMIT 1;", $this->id, $attachmentId, $this->id);
-        $nextNr = $wpdb->get_var($sql);
-        $nextNr = !($nextNr > 0) ? false : $nextNr;
-        return $nextNr;
-    }
-    
-    // Documentated in IFolderContent
-    public function getContentOrderNumbers($fromCache = true, $indexMode = true) {
-        if ($this->getContentCustomOrder() != 1 && !$this->forceContentCustomOrder()) {
-            return false;
-        }
-        
-        global $wpdb;
-        
-        $fid = $this->id;
-        if ($fromCache && isset($this->orderNumbers[$fid])) {
-            $results = $this->orderNumbers[$fid];
-        }else{
-            $results = $wpdb->get_results($wpdb->prepare("SELECT o.attachment, o.nr  FROM " . $this->getTableName("posts") . " AS o WHERE o.fid = %d", $fid), ARRAY_A );
-            $this->orderNumbers[$fid] = $results;
-            
-            if (count($results) == 0) {
-                return false;
-            }
-        }
-        
-        if ($indexMode && count($results) > 0) {
-            $_result = array();
-            foreach ($results as $key => $value) {
-                $_result[((int)$value["attachment"])] = (int) $value["nr"];
-            }
-            $results = $_result;
-        }
-        
-        return $results;
+        $query = new \WP_Query(array(
+			'post_status' => 'inherit',
+			'post_type' => 'attachment',
+			'rml_folder' => $this->id,
+			'orderby' => 'rml',
+			'order' => 'ASC'
+		));
+		$sql = str_replace("SQL_CALC_FOUND_ROWS", "", $query->request);
+		$sql = $wpdb->prepare('SELECT * FROM (' . $sql . ') tmpnext
+		    WHERE orderNr > (SELECT orderNr FROM (' . $sql . ') tmpnext2 WHERE ID = %d)
+		    LIMIT 1', $attachmentId);
+	    $result = $wpdb->get_row($sql, ARRAY_A);
+	    return $result;
     }
     
     // Documentated in IFolderContent
@@ -264,50 +327,104 @@ abstract class Sortable extends folder\Creatable {
         return $result[0];
     }
     
-    /* STATIC FOR ACTIONS AND FILTERS */
-    /*
+    /**
+     * Get all available order methods.
+     * 
+     * @return array
+     */
+    public static function getAvailableContentOrders($asMap = false) {
+        if (self::$cachedContentOrders === null) {
+            $orders = array(
+                "date_asc" => array(
+                    "label" => __("Order by date ascending", RML_TD),
+                    "sqlOrder" => "wp.post_date"
+                ),
+                "date_desc" => array(
+                    "label" => __("Order by date descending", RML_TD),
+                    "sqlOrder" => "wp.post_date"
+                ),
+                "title_asc" => array(
+                    "label" => __("Order by title ascending", RML_TD),
+                    "sqlOrder" => "wp.post_title"
+                ),
+                "title_desc" => array(
+                    "label" => __("Order by title descending", RML_TD),
+                    "sqlOrder" => "wp.post_title"
+                ),
+                "filename_asc" => array(
+                    "label" => __("Order by filename ascending", RML_TD),
+                    "sqlOrder" => "SUBSTRING_INDEX(wp.guid, '/', -1)"
+                ),
+                "filename_desc" => array(
+                    "label" => __("Order by filename descending", RML_TD),
+                    "sqlOrder" => "SUBSTRING_INDEX(wp.guid, '/', -1)"
+                ),
+                "filenameNat_asc" => array(
+                    "label" => __("Natural order by filename ascending", RML_TD),
+                    "sqlOrder" => "LENGTH(SUBSTRING_INDEX(wp.guid, '/', -1)), SUBSTRING_INDEX(wp.guid, '/', -1)"
+                ),
+                "filenameNat_desc" => array(
+                    "label" => __("Natural order by filename descending", RML_TD),
+                    "sqlOrder" => "LENGTH(SUBSTRING_INDEX(wp.guid, '/', -1)) desc, SUBSTRING_INDEX(wp.guid, '/', -1)"
+                ),
+                "id_asc" => array(
+                    "label" => __("Order by ID ascending", RML_TD),
+                    "sqlOrder" => "wp.ID"
+                ),
+                "id_desc" => array(
+                    "label" => __("Order by ID descending", RML_TD),
+                    "sqlOrder" => "wp.ID"
+                )
+            );
+            /**
+             * Add an available order criterium to folder content. If you pass
+             * user input to the SQL Order please be sure the values are escaped!
+             * 
+             * @example
+             * $orders["id_asc"] = array(
+             *  "label" => __("Order by ID ascending", RML_TD),
+             *  "sqlOrder" => "wp.ID"
+             * )
+             * @param {object[]} $orders The available orders
+             * @return {object[]}
+             * @hook RML/Order/Orderby
+             */
+            self::$cachedContentOrders = apply_filters("RML/Order/Orderby", $orders);
+        }
+        
+        if ($asMap) {
+            $sortables = array();
+            foreach (self::$cachedContentOrders as $key => $value) {
+                $sortables[$key] = $value["label"];
+            }
+            return $sortables;
+        }
+        
+        return self::$cachedContentOrders;
+    }
+    
+    /**
      * When moving to a folder with content custom order, reindex the folder content.
      * 
      * @hooked RML/Item/MoveFinished
      */
     public static function item_move_finished($folderId, $ids, $folder, $isShortcut) {
         $core = general\Core::getInstance();
-        general\Util::getInstance()->doActionAnyParentHas($folder, "Folder/Insert", func_get_args());
+        
+        // Apply automatic order
+        $orderAutomatically = (boolean) $folder->getRowData('orderAutomatically');
+        if ($orderAutomatically) {
+            $order = $folder->getRowData('lastOrderBy');
+            
+            if (!empty($order)) {
+                $core->debug("$folderId detected some new files, synchronize with automatic orderby...", __METHOD__);
+                return $folder->contentOrderBy($order, false);
+            }
+        }
         
         if ($folder->getContentCustomOrder() == 1) {
             $core->debug("$folderId detected some new files, synchronize with custom content order...", __METHOD__);
             $folder->contentReindex();
-        }
-    }
-    
-    /**
-     * Add a condition for the automatic order
-     */
-    public static function folder_insert_anyParentHasMetadata($conditions, $folder, $args) {
-        if ($folder->getContentCustomOrder() != 2) {
-            $conditions[] = "rmlmeta.meta_key = 'orderAutomatically' AND rmlmeta.meta_value <> '' AND rmltmp.lvl = '0'";
-            $conditions[] = "rmlmeta.meta_key = 'orderBy' AND rmltmp.lvl = '0'";
-        }
-        return $conditions;
-    }
-    
-    public static function folder_insert_anyParentHasMetadata_orderAutomatically($metas, $folder, $args, $all_metas) {
-        // Search for orderAutomatically
-        foreach ($metas as $meta) {
-            if ($meta["folderId"] == $folder->getId()) {
-                // Search for orderBy
-                if (isset($all_metas["orderby"])) {
-                    foreach ($all_metas["orderby"] as $metaOrderBy) {
-                        if ($metaOrderBy["folderId"] == $folder->getId()) {
-                            $order = $metaOrderBy["value"];
-                            general\Core::getInstance()->debug("New content in folder " . $folder->getId() . ", automatically order by $order ...", __METHOD__);
-                            GalleryOrder::getInstance()->order($folder->getId(), $order, false);
-                            break;
-                        }
-                    }
-                }
-                break;
-            }
         }
     }
     
@@ -322,27 +439,49 @@ abstract class Sortable extends folder\Creatable {
      * ));
      */
     public static function posts_clauses($pieces, $query) {
-        if (!empty($query->query_vars['parsed_rml_folder']) &&
-            (empty($query->query['orderby']) ||
-                (isset($query->query['orderby']) && $query->query['orderby'] == "rml")
-            )
-        ) {
-            global $wpdb;
+        global $wpdb;
+        $folderId = !empty($query->query_vars['parsed_rml_folder']) ? $query->query_vars['parsed_rml_folder'] : 0;
+        $applyOrder = $folderId > 0 && (empty($query->query['orderby']) || (isset($query->query['orderby']) && $query->query['orderby'] == "rml") );
+        
+        if ($query->get('use_rml_folder') !== true) {
+            return $pieces;
+        }
+        
+        if ($applyOrder)
             $pieces["orderby"] = $wpdb->posts.  ".post_date DESC, " . $wpdb->posts.  ".ID DESC";
-            
-            // Get folder
+        
+        // Get folder
+        if ($folderId !== 0) {
             $folder = wp_rml_get_object_by_id($query->query_vars['parsed_rml_folder']);
             if ($folder === null)
                 return $pieces;
+        }else{
+            $folder = wp_rml_get_object_by_id(-1);
+        }
+        
+        $applyOrder = $applyOrder && !($folder->getContentCustomOrder() != 1 && !$folder->forceContentCustomOrder());
+        
+        // left join and order by
+        $pieces["fields"] = trim($pieces["fields"], ",") . ', IFNULL(rmlorder.nr, -1) orderNr';
+        $pieces["join"] .= " LEFT JOIN " . general\Core::getInstance()->getTableName("posts") . " AS rmlorder ON rmlorder.fid=IFNULL(rmlposts.fid, 0) AND rmlorder.attachment = " . $wpdb->posts . ".ID ";
+        
+        if ($folder->postsClauses($pieces) === false && $applyOrder) {
+            $pieces["orderby"] = "rmlorder.nr, " . $wpdb->posts.  ".post_date DESC, " . $wpdb->posts.  ".ID DESC";
             
-            if ($folder->getContentCustomOrder() != 1 && !$folder->forceContentCustomOrder())
-                return $pieces;
-            
-            // left join and order by
-            if ($folder->postsClauses($pieces) === false) {
-                $pieces["join"] .= " LEFT JOIN " . general\Core::getInstance()->getTableName("posts") . " AS rmlorder ON rmlorder.fid=$folder->id AND rmlorder.attachment = " . $wpdb->posts . ".ID ";
-                $pieces["orderby"] = "rmlorder.nr, " . $wpdb->posts.  ".post_date DESC, " . $wpdb->posts.  ".ID DESC";
-            }
+            /**
+             * Modify the filter expression for the sortable content. You can str_replace the
+             * "rmlorder.nr" for the main order column. Use this filter in conjunction with
+             * RML/Sortable/Ids so you can modify the ids for the content order process.
+             * 
+             * @param {array} $pieces The list of clauses for the query
+             * @param {WP_Query} $query The WP_Query instance
+             * @param {IFolder} $folder The folder to query
+             * @return {array} $pieces
+             * @hook RML/Sortable/PostsClauses
+             * @see https://developer.wordpress.org/reference/hooks/posts_clauses/
+             * @since 4.0.8
+             */
+	        $pieces = apply_filters("RML/Sortable/PostsClauses", $pieces, $query, $folder);
         }
         
         return $pieces;

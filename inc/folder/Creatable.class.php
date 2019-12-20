@@ -16,6 +16,9 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
  * extends order\Sortable because every folder can also be sortable!
  */
 abstract class Creatable extends BaseFolder {
+    
+    static $cachedOrders = null;
+    
     /**
      * C'tor with the main properties.
      * 
@@ -104,6 +107,76 @@ abstract class Creatable extends BaseFolder {
         }
     }
     
+    // documentated in IFolderActions
+    public function orderSubfolders($orderby, $writeMetadata = true) {
+        $orders = self::getAvailableSubfolderOrders();
+        $core = general\Core::getInstance();
+        $core->debug("Try to order the subfolders of $this->id by $orderby...", __METHOD__);
+        if (in_array($orderby, array_keys($orders))) {
+            global $wpdb;
+            
+            // Get order
+            $split = explode("_", $orderby);
+            $order = $orders[$orderby];
+            $direction = $split[1];
+            $table_name = general\Core::getInstance()->getTableName();
+            
+            // Run SQL
+            $sql = $wpdb->prepare("UPDATE $table_name AS rmlo2
+                LEFT JOIN (
+                	SELECT @rownum := @rownum + 1 AS ord, t.id
+                	FROM ( SELECT rmlo.id
+                		FROM $table_name AS rmlo
+                		WHERE rmlo.parent = %d
+                		ORDER BY " . $order["sqlOrder"] . " $direction ) AS t, (SELECT @rownum := 0) AS r
+                ) AS rmlonew ON rmlo2.id = rmlonew.id
+                SET rmlo2.ord = rmlonew.ord
+                WHERE rmlo2.parent = %d", $this->id, $this->id);
+            $wpdb->query($sql);
+            
+            // Save in the metadata
+            if ($writeMetadata) {
+                update_media_folder_meta($this->id, "lastSubOrderBy", $orderby);
+            }
+            $core->debug("Successfully ordered folder", __METHOD__);
+            return true;
+        }else{
+            $core->debug("'$orderby' is not a valid order...", __METHOD__);
+            return false;
+        }
+    }
+    
+    // documentated in IFolderActions
+    public function resetSubfolderOrder() {
+        delete_media_folder_meta($this->id, "lastSubOrderBy");
+        $this->debug("Deleted subfolder order of the folder $this->id", __METHOD__);
+        return true;
+    }
+    
+    /**
+     * Check if the current folders parent is automatically ordered by a criterium so
+     * the order can be applied. This should be called when the hierarchy of the
+     * folder is changed or when a new folder is added to that parent.
+     */
+    protected function applySubfolderOrderBy() {
+        $parent = wp_rml_get_object_by_id($this->getParent());
+        if (!is_rml_folder($parent)) {
+            return false;
+        }
+        
+        $orderAutomatically = (boolean) $parent->getRowData('subOrderAutomatically');
+        
+        if ($orderAutomatically) {
+            $order = $parent->getRowData('lastSubOrderBy');
+            
+            if (!empty($order)) {
+                $this->debug("New subfolder " . $this->getId() . " in folder " . $parent->getId() . ", automatically order by $order ...", __METHOD__);
+                return $parent->orderSubfolders($order, false);
+            }
+        }
+        return false;
+    }
+    
     // Documentated in IFolderActions
     public function reindexChildrens($resetData = false) {
         global $wpdb;
@@ -125,6 +198,7 @@ abstract class Creatable extends BaseFolder {
         if ($resetData) {
             wp_rml_structure_reset(null, false);
         }
+        return true;
     }
     
     // Documentated in IFolderActions
@@ -176,6 +250,7 @@ abstract class Creatable extends BaseFolder {
             
             // Get the folder IDs of the attachments
             $foldersToUpdate = wp_attachment_folder($ids);
+            $sourceFolders = $foldersToUpdate;
             
             // Update the folder
             foreach ($ids as $value) {
@@ -196,9 +271,12 @@ abstract class Creatable extends BaseFolder {
              * @param {int[]} $attachments The attachment post ids
              * @param {IFolder} $folder The folder object
              * @param {boolean} $isShortcut If true the attachments are copied to a folder
+             * @param {int[]} $sourceFolders The´source folder ids of the attachments (since 4.0.9)
              * @hook RML/Item/MoveFinished
              */
-            do_action("RML/Item/MoveFinished", $this->id, $ids, $this, $isShortcut);
+            do_action("RML/Item/MoveFinished", $this->id, $ids, $this, $isShortcut, $sourceFolders);
+            
+            general\Util::getInstance()->doActionAnyParentHas($this, "Folder/Insert", array($this->id, $ids, $this, $isShortcut, $sourceFolders));
             return true;
         }else{
             throw new \Exception(__("You need to provide a set of files.", RML_TD));
@@ -220,7 +298,7 @@ abstract class Creatable extends BaseFolder {
          * @param {int} $id The folder id
          * @param {IFolder} $folder The folder object
          * @hook RML/Validate/Insert
-         * @returns {string[]} When the array has one or more items the movement is cancelled with the string message
+         * @return {string[]} When the array has one or more items the movement is cancelled with the string message
          */
         $validation = apply_filters("RML/Validate/Insert", array(), $id, $this);
         if (count($validation) > 0) {
@@ -247,7 +325,7 @@ abstract class Creatable extends BaseFolder {
      * folder with the API wp_rml_get_by_id
      * 
      * @throws Exception
-     * @returns integer ID of the newly created folder
+     * @return integer ID of the newly created folder
      */
     public function persist() {
         $this->debug("Persist to database...", __METHOD__);
@@ -291,6 +369,9 @@ abstract class Creatable extends BaseFolder {
         	     */
             	do_action("RML/Folder/Created", $this->parent, $this->name, $this->getType(), $this->id);
             	$this->debug("Successfully persisted creatable with id " . $this->id, __METHOD__);
+            	
+            	$this->applySubfolderOrderBy();
+            	
             	return $this->id;
         	}else{
         	    throw new \Exception(__("The folder could not be created in the database.", RML_TD));
@@ -350,7 +431,7 @@ abstract class Creatable extends BaseFolder {
          * @param {string} $name The name
          * @param {int} $type The type
          * @param {int} $fid The folder id
-         * @returns {string}
+         * @return {string}
          * @hook RML/Folder/Type/Name
          */
         return apply_filters("RML/Folder/Type/Name", $default === null ? __('Folder', RML_TD) : $default, $this->getType(), $this->getId());
@@ -364,10 +445,15 @@ abstract class Creatable extends BaseFolder {
          * @param {string} $description The description
          * @param {int} $type The type
          * @param {int} $fid The folder id
-         * @returns {string}
+         * @return {string}
          * @hook RML/Folder/Type/Name
          */
         return apply_filters("RML/Folder/Type/Description", $default === null ? __('A folder can contain every type of file or a collection, but no gallery.', RML_TD) : $default, $this->getType(), $this->getId());
+    }
+    
+    // Documentated in IFolderActions
+    public function setVisible($visible) {
+        $this->visible = $visible;
     }
     
     // Documentated in IFolderActions
@@ -402,6 +488,7 @@ abstract class Creatable extends BaseFolder {
         }
         
         $newOrder = $ord > -1 ? $ord : $parent->getMaxOrder() + 1;
+        $isRelocate = $id == $this->parent;
         
         /**
          * This action is called when a folder was relocated in the folder tree. That
@@ -426,7 +513,7 @@ abstract class Creatable extends BaseFolder {
          * @hook RML/Folder/Move
          * @since 4.0.7
          */
-        do_action($id == $this->id ? 'RML/Folder/Relocate' : 'RML/Folder/Move', $this, $id, $newOrder, $force);
+        do_action($isRelocate ? 'RML/Folder/Relocate' : 'RML/Folder/Move', $this, $id, $newOrder, $force);
         
         $oldData = $this->getRowData();
         $beforeId = $this->parent;
@@ -472,12 +559,16 @@ abstract class Creatable extends BaseFolder {
              * @param {object} $oldData The old SQL row data (raw) of the folder
              * @hook RML/Folder/Moved
              */
-            do_action($id == $this->id ? 'RML/Folder/Relocated' : 'RML/Folder/Moved', $this, $id, $this->order, $force, $oldData);
+            do_action($isRelocate ? 'RML/Folder/Relocated' : 'RML/Folder/Moved', $this, $id, $this->order, $force, $oldData);
             $this->debug("Successfully moved and saved in database", __METHOD__);
+            
+            general\Util::getInstance()->doActionAnyParentHas($this, "Folder/RelocatedOrMoved", array($this, $id, $this->order, $force, $oldData));
+            $this->applySubfolderOrderBy();
         }else{
             $this->debug("Successfully setted the new parent", __METHOD__);
             $this->getAbsolutePath(true, true);
         }
+        
         return true;
     }
     
@@ -504,7 +595,7 @@ abstract class Creatable extends BaseFolder {
              * @param {string} $name The new folder name
              * @param {IFolder} $folder The folder object
              * @hook RML/Validate/Rename
-             * @returns {string[]} When the array has one or more items the rename process is cancelled with the string message
+             * @return {string[]} When the array has one or more items the rename process is cancelled with the string message
              */
             $validation = apply_filters("RML/Validate/Rename", array(), $name, $this);
             if (count($validation) > 0) {
@@ -553,7 +644,7 @@ abstract class Creatable extends BaseFolder {
      * be no problem for physical moves for example.
      * 
      * @param string $name The folder name
-     * @returns boolean
+     * @return boolean
      */
     public function isValidName($name) {
         $name = trim($name);
@@ -566,7 +657,7 @@ abstract class Creatable extends BaseFolder {
      * @param int $id The folder id (-1 for root)
      * @param string $order The order
      * @param string $orderby The order by
-     * @returns array with ids
+     * @return array with ids
      */
     public static function xread($id, $order = null, $orderby = null) {
         $args = array(
@@ -590,7 +681,7 @@ abstract class Creatable extends BaseFolder {
          * 
          * @param {array} $query The query with post_status, post_type and rml_folder
          * @hook RML/Folder/QueryArgs
-         * @returns {array} The query
+         * @return {array} The query
          */
         $args = apply_filters('RML/Folder/QueryArgs', $args);
         $query = new \WP_Query($args);
@@ -600,10 +691,93 @@ abstract class Creatable extends BaseFolder {
          * The folder content (attachments) is fetched.
          * 
          * @param {int[]|WP_Post[]} $posts The posts
-         * @returns {int[]|WP_Post[]}
+         * @return {int[]|WP_Post[]}
          * @hook RML/Folder/QueryResult
          */
         $posts = apply_filters('RML/Folder/QueryResult', $posts);
         return $posts;
+    }
+    
+    /**
+     * Delete the subOrderAutomatically metadata when deleting the subfolder
+     * order and also reset the subfolder order. It also handles the content order.
+     */
+    public static function deleted_realmedialibrary_meta($meta_ids, $object_id, $meta_key) {
+        global $wpdb;
+        
+        if (empty($object_id)) {
+            return;
+        }
+        
+        if ($meta_key === "lastSubOrderBy") {
+            // The default is to order by ID ascending
+            $folder = wp_rml_get_object_by_id($object_id);
+            if (is_rml_folder($folder)) {
+                $folder->orderSubfolders("id_asc", false);
+            }
+            
+            $wpdb->query($wpdb->prepare("UPDATE " . general\Core::getInstance()->getTableName() . " SET ord=NULL, oldCustomOrder=NULL WHERE id=%d", $object_id));
+            delete_media_folder_meta($object_id, "subOrderAutomatically");
+        }
+        
+        if ($meta_key === "orderby") {
+            $wpdb->query($wpdb->prepare("UPDATE " . general\Core::getInstance()->getTableName("posts") . " SET nr=NULL, oldCustomNr=NULL WHERE fid=%d", $object_id));
+            $wpdb->query($wpdb->prepare("UPDATE " . general\Core::getInstance()->getTableName() . " SET contentCustomOrder=0 WHERE id=%d", $object_id));
+            delete_media_folder_meta($object_id, "orderAutomatically");
+        }
+    }
+    
+    /**
+     * Get all available order methods for subfolders.
+     * 
+     * @return array
+     * @see this::orderSubfolders()
+     */
+    public static function getAvailableSubfolderOrders($asMap = false) {
+        if (self::$cachedOrders === null) {
+            $orders = array(
+                "name_asc" => array(
+                    "label" => __("Order by name ascending", RML_TD),
+                    "sqlOrder" => "rmlo.name"
+                ),
+                "name_desc" => array(
+                    "label" => __("Order by name descending", RML_TD),
+                    "sqlOrder" => "rmlo.name"
+                ),
+                "id_asc" => array(
+                    "label" => __("Order by ID ascending", RML_TD),
+                    "sqlOrder" => "rmlo.id"
+                ),
+                "id_desc" => array(
+                    "label" => __("Order by ID descending", RML_TD),
+                    "sqlOrder" => "rmlo.id"
+                )
+            );
+            /**
+             * Add an available order criterium to the tree. If you pass
+             * user input to the SQL Order please be sure the values are escaped!
+             * 
+             * @example
+             * $orders["id_asc"] = array(
+             *  "label" => __("Order by ID ascending", RML_TD),
+             *  "sqlOrder" => "rml.ID"
+             * )
+             * @param {object[]} $orders The available orders
+             * @return {object[]}
+             * @hook RML/Tree/Orderby
+             * @since 4.4.0
+             */
+            self::$cachedOrders = apply_filters("RML/Tree/Orderby", $orders);
+        }
+        
+        if ($asMap) {
+            $sortables = array();
+            foreach (self::$cachedOrders as $key => $value) {
+                $sortables[$key] = $value["label"];
+            }
+            return $sortables;
+        }
+        
+        return self::$cachedOrders;
     }
 }

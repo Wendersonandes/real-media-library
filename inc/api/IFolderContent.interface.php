@@ -19,10 +19,18 @@ interface IFolderContent {
     public function contentOrder($attachmentId, $nextId, $lastIdInView = false);
     
     /**
+     * Start to order the given folder content by a given order type.
+     * 
+     * @param string $orderby The ordertype key
+     * @return boolean
+     */
+    public function contentOrderBy($orderby, $writeMetadata = true);
+    
+    /**
      * Index the order table.
      * 
      * @param boolean $delete Delete the old order
-     * @returns boolean
+     * @return boolean
      */
     public function contentIndex($delete = true);
     
@@ -32,14 +40,14 @@ interface IFolderContent {
      * <pre>0 1 5 7 8 9 10 =>
      * 0 1 2 3 4 5 6</pre>
      * 
-     * @returns boolean
+     * @return boolean
      */
     public function contentReindex();
     
     /**
      * Enable the order functionlity for this folder.
      * 
-     * @returns boolean
+     * @return boolean
      * @see IFolderContent::getContentCustomOrder()
      */
     public function contentEnableOrder();
@@ -47,7 +55,7 @@ interface IFolderContent {
     /**
      * Deletes the complete order for this folder.
      * 
-     * @returns boolean
+     * @return boolean
      * @see IFolderContent::getContentCustomOrder()
      */
     public function contentDeleteOrder();
@@ -55,14 +63,14 @@ interface IFolderContent {
     /**
      * Restore the current order number to the old custom order number.
      * 
-     * @returns boolean
+     * @return boolean
      */
     public function contentRestoreOldCustomNr();
     
     /*
      * Checks if the folder is allowed to use custom content order.
      * 
-     * @returns boolean
+     * @return boolean
      */
     public function isContentCustomOrderAllowed();
     
@@ -73,7 +81,7 @@ interface IFolderContent {
      * 1 = Content order is enabled
      * 2 = Custom content order is not allowed</pre>
      * 
-     * @returns integer The content custom order value
+     * @return integer The content custom order value
      * @see IFolderContent::isContentCustomOrderAllowed()
      * @see IFolderContent::contentEnableOrder()
      */
@@ -83,7 +91,7 @@ interface IFolderContent {
      * Override this functionality to force the content custom order
      * in the posts_clauses.
      * 
-     * @returns boolean
+     * @return boolean
      * @since 4.0.2
      */
     public function forceContentCustomOrder();
@@ -94,34 +102,26 @@ interface IFolderContent {
      * You have to return true if you have overwritten it.
      * 
      * @param array $pieces The posts_clauses $pieces parameter
-     * @returns boolean
+     * @return boolean
      * @since 4.0.2
      */
     public function postsClauses($pieces);
     
     /**
-     * Get the next attachment id for a specific attachment. It returns false if
+     * Get the next attachment row for a specific attachment. It returns false if
      * the attachment is at the end or the folder has no custom content order.
      * 
      * @param integer $attachmentId The attachment id
-     * @returns boolean Int or false
+     * @return array or null
+     * @since 4.0.8 Now the method returns an array instead of int
      */
     public function getAttachmentNextTo($attachmentId);
-    
-    /**
-     * Get the whole order table.
-     * 
-     * @param boolean $fromCache load the data from the cache
-     * @param boolean $indexMode the return is an indexed array with attachment id key
-     * @returns boolean|int[]
-     */
-    public function getContentOrderNumbers($fromCache = true, $indexMode = true);
     
     /**
      * Gets the biggest order number;
      * 
      * @param string $function The SQL aggregation function (MIN or MAX)
-     * @returns integer
+     * @return integer
      */
     public function getContentAggregationNr($function = "MAX");
     
@@ -136,7 +136,7 @@ interface IFolderContent {
     /**
      * Get the old custom order number count so we can decide if already available.
      * 
-     * @returns int Count
+     * @return int Count
      */
     public function getContentOldCustomNrCount();
     

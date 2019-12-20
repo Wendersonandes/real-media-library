@@ -21,14 +21,14 @@ class Folder extends base\Base {
             'callback' => array($this, 'getContentCounts')
         ));
         
-        register_rest_route(Service::SERVICE_NAMESPACE, '/folders/content/sortables', array(
-            'methods' => 'GET',
-            'callback' => array($this, 'getContentSortables')
-        ));
-        
-        register_rest_route(Service::SERVICE_NAMESPACE, '/folders/content/sortables', array(
+        register_rest_route(Service::SERVICE_NAMESPACE, '/folders/(?P<fid>\d+)/content/sortables', array(
             'methods' => 'POST',
             'callback' => array($this, 'applyContentSortables')
+        ));
+        
+        register_rest_route(Service::SERVICE_NAMESPACE, '/folders/(?P<fid>\d+)/sortables', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'applyFolderSortables')
         ));
         
         register_rest_route(Service::SERVICE_NAMESPACE, '/folders/(?P<id>\d+)/meta', array(
@@ -71,36 +71,23 @@ class Folder extends base\Base {
     }
     
     /**
-     * @api {get} /realmedialibrary/v1/folders/content/sortable Get the available sortables
-     * @apiName GetFolderContentSortables
-     * @apiGroup Folder
-     * @apiVersion 1.0.0
-     * @apiPermission upload_files
-     */
-    public function getContentSortables($request) {
-        if (($permit = Service::permit()) !== null) return $permit;
-        
-        return new \WP_REST_Response(order\GalleryOrder::getInstance()->getAvailableOrders(true));
-    }
-    
-    /**
-     * @api {post} /realmedialibrary/v1/folders/content/sortable Set a folders content order
+     * @api {post} /realmedialibrary/v1/folders/:fid/content/sortables Set a folders content order
      * @apiParam {string} id The sortable id. Pass "original" to reset the folder,
      *  pass "deactivate" to deactive the automatic order,
      *  pass "reindex" to reindex the order indexes,
      *  pass "last" to try to to reset to the last available order
-     * @apiParam {int} applyTo The folder id
      * @apiParam {boolean} [automatically] Automatically use this order when new files are added to the folder
      * @apiName ApplyFolderContentSorting
      * @apiGroup Folder
      * @apiVersion 1.0.0
      * @apiPermission upload_files
+     * @since 4.4 The old API /folders/content/sortables is deleted
      */
     public function applyContentSortables($request) {
         if (($permit = Service::permit()) !== null) return $permit;
         
         $sortable = $request->get_param('id');
-        $applyTo = $request->get_param('applyTo');
+        $applyTo = $request->get_param('fid');
         $automatically = $request->get_param('automatically');
         $automatically = gettype($automatically) === 'string' ? $automatically === 'true' : $automatically;
         $folder = wp_rml_get_object_by_id($applyTo);
@@ -115,9 +102,49 @@ class Folder extends base\Base {
         }else if ($sortable === 'last') {
             $result = $isFolder && $folder->getContentOldCustomNrCount() > 0 && $folder->contentRestoreOldCustomNr();
         }else{
-            $result = $isFolder && order\GalleryOrder::getInstance()->order($applyTo, $sortable);
+            $result = $isFolder && $folder->contentOrderBy($sortable);
             if ($result) {
                 update_media_folder_meta($folder->getId(), 'orderAutomatically', $automatically);
+            }
+        }
+        return new \WP_REST_Response($result);
+    }
+    
+    /**
+     * @api {post} /realmedialibrary/v1/folders/:fid/sortables Set a folders subfolder order
+     * @apiParam {string} id The sortable id. Pass "original" to reset the folder,
+     *  pass "deactivate" to deactive the automatic order,
+     *  pass "reindex" to reindex the order indexes,
+     *  pass "last" to try to to reset to the last available order
+     * @apiParam {boolean} [automatically] Automatically use this order when new subfolders are added to the folder
+     * @apiName ApplyFolderSorting
+     * @apiGroup Folder
+     * @apiVersion 1.0.0
+     * @apiPermission upload_files
+     * @since 4.4
+     */
+    public function applyFolderSortables($request) {
+        if (($permit = Service::permit()) !== null) return $permit;
+        
+        $sortable = $request->get_param('id');
+        $applyTo = $request->get_param('fid');
+        $automatically = $request->get_param('automatically');
+        $automatically = gettype($automatically) === 'string' ? $automatically === 'true' : $automatically;
+        $folder = wp_rml_get_object_by_id($applyTo);
+        $isFolder = is_rml_folder($folder);
+        $result = false;
+        if ($sortable === 'original') {
+            $result = $isFolder && $folder->resetSubfolderOrder();
+        }else if ($sortable === 'deactivate') {
+            $result = update_media_folder_meta($folder->getId(), 'subOrderAutomatically', false);
+        }else if ($sortable === 'reindex') {
+            $result = $isFolder && $folder->reindexChildrens();
+        }else if ($sortable === 'last') {
+            //$result = $isFolder && $folder->getContentOldCustomNrCount() > 0 && $folder->contentRestoreOldCustomNr();
+        }else{
+            $result = $isFolder && $folder->orderSubfolders($sortable);
+            if ($result) {
+                update_media_folder_meta($folder->getId(), 'subOrderAutomatically', $automatically);
             }
         }
         return new \WP_REST_Response($result);
@@ -211,9 +238,9 @@ class Folder extends base\Base {
          * @param {array} $response The response passed to the frontend
          * @param {WP_REST_Request} $request The server request
          * @hook RML/Folder/Meta/Save
-         * @returns {array}
+         * @return {array}
          */
-        $response = apply_filters("RML/Folder/Meta/Save", array(), $folder, $request);
+        $response = apply_filters("RML/Folder/Meta/Save", array('errors' => array(), 'data' => array()), $folder, $request);
         
         if (is_array($response) && isset($response["errors"]) && count($response["errors"]) > 0) {
             return new \WP_Error('rest_rml_folder_update', $response["errors"], array('status' => 500));

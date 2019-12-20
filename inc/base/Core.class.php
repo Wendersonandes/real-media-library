@@ -68,10 +68,10 @@ abstract class Core extends Base {
     }
     
     /**
-     * Autoload PHP files (classes and interfaces). It respects the given namespace
+     * Autoload PHP files (classes, interfaces and traits). It respects the given namespace
      * within the inc/ folder. Each subnamespace must be available as own folder.
      * Class files should be defined as ClassName.class.php. Interface files should
-     * be defined as IName.interface.php.
+     * be defined as IName.interface.php. Trait files should be defined as MyTrait.trait.php.
      * 
      * @param string $className Full qualified class name
      */
@@ -80,10 +80,17 @@ abstract class Core extends Base {
         if (0 === strpos($className, $namespace)) {
             $name = substr($className, strlen($namespace));
             $last = explode("\\", $name);
-            $isInterface = substr($last[count($last) - 1], 0, 1) === "I";
-            $filename = RML_INC . str_replace('\\', '/', $name) . '.' . ($isInterface ? 'interface' : 'class') . '.php';
-            if (file_exists($filename)) {
-                require_once($filename);
+            $prefix = RML_INC . str_replace('\\', '/', $name) . '.';
+            $filesToCheck = array(
+                $prefix . 'class.php',
+                $prefix . 'interface.php',
+                $prefix . 'trait.php'
+            );
+            
+            foreach ($filesToCheck as $filename) {
+                if (file_exists($filename)) {
+                    require_once($filename);
+                }
             }
         }
     }
@@ -111,7 +118,7 @@ abstract class Core extends Base {
      * Gets the plugin data.
      * 
      * @param string $key The key of the data to return
-     * @returns string[]|string
+     * @return string[]|string
      * @see https://developer.wordpress.org/reference/functions/get_plugin_data/
      */
     public function getPluginData($key = null) {
@@ -121,14 +128,14 @@ abstract class Core extends Base {
     }
     
     /**
-     * @returns Activator
+     * @return Activator
      */
     public function getActivator() {
         return $this->activator;
     }
     
     /**
-     * @returns Assets
+     * @return Assets
      */
     public function getAssets() {
         return $this->assets;

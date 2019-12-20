@@ -38,11 +38,17 @@ class FolderShortcode extends base\Base {
         $atts = shortcode_atts( array(
             'fid' => -2,
             'order' => 'DESC',
-            'orderby' => 'date'
+            'orderby' => 'date',
+            'posts_per_page' => -1
         ), $atts );
         
+        // The fid can also come from $out
+        if (isset($out['fid']) && $out['fid'] > -2) {
+            $atts['fid'] = $out['fid'];
+        }
+        
         // RML order is only available with ASC
-        if ($atts["orderby"] == "rml") {
+        if ($atts["orderby"] == "rml" || (isset($out["orderby"]) && $out['orderby'] == "rml")) {
             $out["orderby"] = "menu_order ID";
         }
         

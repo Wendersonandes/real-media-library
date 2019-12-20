@@ -6,7 +6,7 @@
  * Description: 	Organize your wordpress media library in a nice way.
  * Author:          Matthias Günter
  * Author URI:		https://matthias-web.com
- * Version: 		4.0.7
+ * Version: 		4.5.4
  * Text Domain:		real-media-library
  * Domain Path:		/languages
  */
@@ -19,9 +19,9 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' ); // Avoid direct file
  */
 if (defined('RML_PATH')) return;
 define('RML_FILE', __FILE__);
-define('RML_PATH', dirname(RML_FILE));
-define('RML_INC',	trailingslashit(path_join(RML_PATH, 'inc')));
-define('RML_MIN_PHP', '5.3.0'); // Minimum of PHP 5.3 required for autoloading and namespacing
+define('RML_PATH', realpath(plugin_dir_path(RML_FILE)));
+define('RML_INC', trailingslashit(realpath(path_join(RML_PATH, 'inc'))));
+define('RML_MIN_PHP', '5.4.0'); // Minimum of PHP 5.4 required for autoloading, namespaces and traits
 define('RML_MIN_WP', '4.4.0'); // Minimum of WordPress 4.4 required
 define('RML_NS', 'MatthiasWeb\\RealMediaLibrary');
 define('RML_DB_PREFIX', 'realmedialibrary'); // The table name prefix wp_{prefix}
@@ -38,4 +38,4 @@ define('RML_TYPE_ALL', 3);
 define('RML_TYPE_ROOT', 4);
 
 // Check PHP Version and print notice if minimum not reached, otherwise start the plugin core
-require_once(RML_INC . "others/" . (version_compare(phpversion(), RML_MIN_PHP, ">=") ? "start.php" : "phpfallback.php"));
+require_once(RML_INC . "others/" . (version_compare(phpversion(), RML_MIN_PHP, ">=") ? "start.php" : "fallback-php-version.php"));

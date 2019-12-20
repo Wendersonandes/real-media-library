@@ -51,6 +51,7 @@ class Util extends base\Base {
          * $actions are:
          * <ul>
          *  <li>"Folder/Insert": Items are moved to the folder (see RML/Item/MoveFinished action for $args)</li>
+         *  <li>"Folder/RelocatedOrMoved": A folder is relocated or moved to a given new parent (see RML/Item/Relocated action for $args), since 4.4</li>
          *  <li>Your action: Please contact Real Media Library developer to request another action</li>
          * </ul>
          * 
@@ -59,7 +60,7 @@ class Util extends base\Base {
          * @param {arguments[]} $args The referenced arguments
          * @example <caption>Add a condition</caption>
          * $conditions[] = $wpdb->prepare("rmlmeta.meta_key = 'myMeta' AND rmlmeta.meta_value = %s", "test");
-         * @returns {string[]} The conditions
+         * @return {string[]} The conditions
          * @see IFolder::anyParentHasMetadata()
          * @see wp_rml_create_all_parents_sql()
          * @see RML/$action/AnyParentHasMeta/$meta_key
@@ -270,7 +271,7 @@ class Util extends base\Base {
     /**
      * @see wp_rml_create_all_parents_sql
      */
-    public static function createSQLForAllParents($folder, $includeSelf = false, $until = null, $options = null) {
+    public function createSQLForAllParents($folder, $includeSelf = false, $until = null, $options = null) {
         global $wpdb;
         
         // Get folder id
@@ -301,8 +302,9 @@ class Util extends base\Base {
     
     /**
      * @see wp_rml_create_all_children_sql
+     * @param string $type Only for internal usage. If null the type is automatically detected from supported type (site option). You can pass 'function' and 'legacy'
      */
-    public static function createSQLForAllChildren($folder, $includeSelf = false, $options = null) {
+    public function createSQLForAllChildren($folder, $includeSelf = false, $options = null, $type = null) {
         global $wpdb;
         
         // Get folder id
@@ -311,30 +313,41 @@ class Util extends base\Base {
             return false;
         }
         
+        // Get type
+        $isTempCheck = $type !== null;
+        if ($type === null) {
+            $type = get_site_option(RML_OPT_PREFIX . Activator::DB_CHILD_QUERY_SUPPORTED, null);
+            $type = $type === '2' ? 'function' : 'legacy';
+        }
+        
         // Parse options
         $options = array_merge(array(
             "fields" => "rmldata.*",
             "join" => "",
-            "where" => $wpdb->prepare("rmldata._parent = %d", $folderId)
-                        . ($includeSelf === true ? "" : $wpdb->prepare(" AND rmldata.id != %d", $folderId)),
+            "where" => '1=1 ' . ($includeSelf === true ? "" : $wpdb->prepare(" AND rmldata.id != %d", $folderId)),
             "afterWhere" => "",
             "orderby" => "rmldata.parent, rmldata.ord",
             "limit" => ""
         ), $options === null ? array() : $options);
         
         $table_name = general\Core::getInstance()->getTableName();
-        return "SELECT " . $options["fields"] . "
-            FROM (SELECT t0.*,
-                IF(t0._r_reset = 1, (@r := t0._r_init), (@r := (SELECT m3.parent FROM $table_name m3 WHERE id = @r))) AS _parent,
-                IF(t0._r_reset = 1, (@l := 0), (@l := @l + 1)) AS lvldown
-              FROM 
-                (SELECT m1.*, m0.id AS _r_counter, m1.id AS _r_init,
-                   ((SELECT MIN(m2.id) FROM $table_name m2) = m0.id) AS _r_reset 
-                 FROM $table_name m0 JOIN $table_name m1) t0 
-              ORDER BY t0._r_init, t0._r_counter) rmldata
-            " . $options["join"] . "
-            WHERE " . $options["where"] . " " . $options["afterWhere"] . "
-            ORDER BY " . $options["orderby"] . " " . $options["limit"];
+        if ($type === 'function') {
+            // Since 4.4.1 the childs are read via mysql UDF
+            $function_name = $wpdb->prefix . Activator::CHILD_UDF_NAME;
+            return 'SELECT ' . $options['fields'] . '
+                FROM ' . $table_name . ' AS rmldata ' . $options['join'] . '
+                WHERE FIND_IN_SET(id, ' . $function_name . '(' . $wpdb->prepare('%d', $folderId) . ', ' . ($isTempCheck ? 'true' : 'false') . '))
+                AND ' . $options['where'] . ' ' . $options['afterWhere'] . '
+                ORDER BY ' . $options['orderby'] . ' ' . $options['limit'];
+        }else{
+            // Set concat size for this session
+            $wpdb->query('SET SESSION group_concat_max_len = 100000');
+            return 'SELECT ' . $options['fields'] . ' FROM (SELECT _rmldata.*
+            	FROM (SELECT * FROM ' . $table_name . ' ORDER BY parent, id) _rmldata, 
+            		(SELECT @pv := ' . $wpdb->prepare('%d', $folderId) . ') initialisation 
+            	WHERE (FIND_IN_SET(_rmldata.parent, @pv) > 0 AND @pv := CONCAT(@pv, \',\', _rmldata.id)) OR @pv = _rmldata.id
+            ) rmldata ' . $options['join'] . ' WHERE ' . $options['where'] . ' ' . $options['afterWhere'] . ' ORDER BY ' . $options['orderby'] . ' ' . $options['limit'];
+        }
     }
     
     public function esc_sql_name($name) {

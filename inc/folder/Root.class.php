@@ -59,7 +59,7 @@ class Root extends order\Sortable {
     }
     
     public function getContentCustomOrder() {
-        return "2";
+        return 2;
     }
     
     public function getTypeName($default = null) {

@@ -36,7 +36,7 @@ class CountCache extends base\Base {
      * @param int[] $folders Array of folders ID, if null then all folders with cnt = NULL are updated
      * @param int[] $attachments Array of attachments ID, is merged with $folders if given
      * @param boolean $onlyReturn Set to true if you only want the SQL query
-     * @returns string Void or SQL query
+     * @return string Void or SQL query
      */
     public function updateCountCache($folders = null, $attachments = null, $onlyReturn = false) {
         global $wpdb;
@@ -96,14 +96,14 @@ class CountCache extends base\Base {
     /**
      * Get the single SQL for the subquery of count getter.
      * 
-     * @returns string
+     * @return string
      */
     public function getSingleCountSql() {
         /**
          * Get the posts clauses for the count cache.
          * 
          * @param {string[]} $clauses The posts clauses with "from", "where"
-         * @returns {string[]} The posts clauses
+         * @return {string[]} The posts clauses
          * @hook RML/Count/PostsClauses
          */
         $sql = apply_filters('RML/Count/PostsClauses', array(
@@ -119,7 +119,7 @@ class CountCache extends base\Base {
      * Reset the count cache for the current blog id. The content of the array is not prepared for the statement
      * 
      * @param int $folderId Array If you pass folder id/ids array, only this one will be resetted.
-     * @returns CountCache
+     * @return CountCache
      */
     public function resetCountCache($folderId = null) {
         global $wpdb;
@@ -158,6 +158,10 @@ class CountCache extends base\Base {
             $this->debug("Update count cache on wp die...", __METHOD__);
             $this->updateCountCache($this->folderIdsOnWpDie);
         }
+        
+        // Reset because this function can be called multiple
+        $this->newAttachments = array();
+        $this->folderIdsOnWpDie = array();
     }
     
     /**

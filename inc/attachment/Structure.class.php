@@ -105,7 +105,7 @@ class Structure extends base\Base implements api\IStructure {
          * @param {array} $fields The standard RML fields
          * @param {IStructure} $structure The structure
          * @hook RML/Tree/SQLStatement/SELECT
-         * @returns {array}
+         * @return {array}
          */
         $fields = join(", ", apply_filters("RML/Tree/SQLStatement/SELECT", array(
             // The whole row of the folder
@@ -115,7 +115,9 @@ class Structure extends base\Base implements api\IStructure {
                 " . CountCache::getInstance()->getSingleCountSql() . "
             )) AS cnt_result",
             "rml_meta_orderby.meta_value AS lastOrderBy",
-            "rml_meta_orderAutomatically.meta_value AS orderAutomatically"
+            "rml_meta_orderAutomatically.meta_value AS orderAutomatically",
+            "rml_meta_lastSubOrderBy.meta_value AS lastSubOrderBy",
+            "rml_meta_subOrderAutomatically.meta_value AS subOrderAutomatically"
         ), $this));
         
         /**
@@ -125,14 +127,29 @@ class Structure extends base\Base implements api\IStructure {
          * @param {array} $fields The standard RML fields
          * @param {IStructure} $structure The structure
          * @hook RML/Tree/SQLStatement/JOIN
-         * @returns {array} $fields
+         * @return {array} $fields
          */
         $joins = join(" ", apply_filters("RML/Tree/SQLStatement/JOIN", array(
             // The last order by, saved in folder meta as "orderby"
-            "LEFT JOIN " . $this->getTableName('meta') . " rml_meta_orderby ON rml_meta_orderby.realmedialibrary_id = tn.ID AND rml_meta_orderby.meta_key =  'orderby'",
+            "LEFT JOIN " . $this->getTableName('meta') . " rml_meta_orderby ON rml_meta_orderby.realmedialibrary_id = tn.ID AND rml_meta_orderby.meta_key = 'orderby'",
             // Determines, if the orderby should be applied automatically, saved in folder meta as "orderAutomatically"
-            "LEFT JOIN " . $this->getTableName('meta') . " rml_meta_orderAutomatically ON rml_meta_orderAutomatically.realmedialibrary_id = tn.ID AND rml_meta_orderAutomatically.meta_key =  'orderAutomatically'"
+            "LEFT JOIN " . $this->getTableName('meta') . " rml_meta_orderAutomatically ON rml_meta_orderAutomatically.realmedialibrary_id = tn.ID AND rml_meta_orderAutomatically.meta_key = 'orderAutomatically'",
+            // The last subfolder order by, saved in folder meta as "lastSubOrderBy"
+            "LEFT JOIN " . $this->getTableName('meta') . " rml_meta_lastSubOrderBy ON rml_meta_lastSubOrderBy.realmedialibrary_id = tn.ID AND rml_meta_lastSubOrderBy.meta_key = 'lastSubOrderBy'",
+            // Determines, if the sbufolder orderby should be applied automatically, saved in folder meta as "subOrderAutomatically"
+            "LEFT JOIN " . $this->getTableName('meta') . " rml_meta_subOrderAutomatically ON rml_meta_subOrderAutomatically.realmedialibrary_id = tn.ID AND rml_meta_subOrderAutomatically.meta_key = 'subOrderAutomatically'",
         ), $this));
+        
+        /**
+         * Add WHERE statement to modify parts of the tree SQL statement.
+         *
+         * @param {string} $sql The sql query
+         * @param {IStructure} $structure The structure
+         * @hook RML/Tree/SQLStatement/WHERE
+         * @return {string}
+         * @since 4.0.8
+         */
+        $where = apply_filters("RML/Tree/SQLStatement/WHERE", "", $this);
 
         /**
          * Modify the full tree SQL statement.
@@ -140,12 +157,13 @@ class Structure extends base\Base implements api\IStructure {
          * @param {string} $sql The sql query
          * @param {IStructure} $structure The structure
          * @hook RML/Tree/SQLStatement
-         * @returns {string}
+         * @return {string}
          */
         $sqlStatement = apply_filters("RML/Tree/SQLStatement", array("
             SELECT " . $fields . "
             FROM $table_name AS tn
             $joins
+            $where
             ORDER BY parent, ord"), $this);
         
         $this->rows = $wpdb->get_results($sqlStatement[0]);
@@ -156,7 +174,7 @@ class Structure extends base\Base implements api\IStructure {
          * @param {object[]} $rows The SQL results
          * @param {IStructure} $structure The structure
          * @hook RML/Tree/SQLRows
-         * @returns {object[]}
+         * @return {object[]}
          */
         $this->rows = apply_filters("RML/Tree/SQLRows",  $this->rows, $this);
         
@@ -204,6 +222,16 @@ class Structure extends base\Base implements api\IStructure {
             }
         }
         
+        /**
+         * Here you can modify the fresh-created instance of an IFolder object.
+         * 
+         * @param {IFolder[]} $parsed
+         * @hook RML/Creatable/Construct
+         * @return IFolder[]
+         * @since 4.5.2
+         */
+        $this->parsed = apply_filters('RML/Tree/Parsed', $this->parsed);
+        
         // Create the tree
         $folder = null;
         foreach($this->parsed as $key => $category){
@@ -240,13 +268,14 @@ class Structure extends base\Base implements api\IStructure {
         /**
          * When a folder is not found by an absolute path this filter is
          * called and looks up for folders which are perhaps handled by other
-         * structures.
+         * structures. If you are hooking into this function please consider that
+         * you apply_filters for RML/Tree/Parsed manually.
          * 
          * @param {IFolder} $folder The folder (null if not found)
          * @param {integer} $id The searched Id
          * @param {IStructure} $structure The structure
          * @hook RML/Tree/ResolveById
-         * @returns {IFolder} The found folder or null if not found
+         * @return {IFolder} The found folder or null if not found
          * @since 3.3.1
          */
         return apply_filters("RML/Tree/ResolveById", null, $id, $this);
@@ -264,13 +293,14 @@ class Structure extends base\Base implements api\IStructure {
         /**
          * When a folder is not found by an absolute path this filter is
          * called and looks up for folders which are perhaps handled by other
-         * structures.
+         * structures. If you are hooking into this function please consider that
+         * you apply_filters for RML/Tree/Parsed manually.
          * 
          * @param {IFolder} $folder The folder (null if not found)
          * @param {string} $path The searched path
          * @param {IStructure} $structure The structure
          * @hook RML/Tree/ResolveByAbsolutePath
-         * @returns {IFolder} The found folder or null if not found
+         * @return {IFolder} The found folder or null if not found
          * @since 3.3.1
          */
         return apply_filters("RML/Tree/ResolveByAbsolutePath", null, $path, $this);
@@ -300,7 +330,10 @@ class Structure extends base\Base implements api\IStructure {
         $tree = $this->getTree();
         if (is_array($tree)) {
             foreach ($tree as $obj) {
-                $result[] = $obj->getPlain(true);
+                $plain = $obj->getPlain(true);
+                if ($plain !== null) {
+                    $result[] = $plain;
+                }
             }
         }
         return $result;
@@ -314,7 +347,7 @@ class Structure extends base\Base implements api\IStructure {
              * 
              * @param {integer} $count The count
              * @param {object} $structure The structure class
-             * @returns {integer} The count
+             * @return {integer} The count
              * @hook RML/Tree/CountAttachments
              */
             return apply_filters("RML/Tree/CountAttachments", 0, $this);
@@ -325,7 +358,7 @@ class Structure extends base\Base implements api\IStructure {
     /**
      * Get all folder counts.
      * 
-     * @returns Array<string|int,int>
+     * @return Array<string|int,int>
      */
     public function getFolderCounts() {
         $result = array();

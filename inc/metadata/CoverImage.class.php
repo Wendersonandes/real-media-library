@@ -12,6 +12,25 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 class CoverImage extends base\Base implements api\IMetadata {
     public function __construct() {
         add_action("delete_attachment", array($this, "delete_attachment"));
+        add_action('wp_ajax_get-attachment-by-url', array($this, 'ajax_get_attachment_by_url'), 15);
+    }
+    
+    /**
+     * @see https://www.npmjs.com/package/wp-media-picker#implement-additional-ajax-function
+     */
+    public function ajax_get_attachment_by_url() {
+        if ( ! isset( $_REQUEST['url'] ) ) {
+            wp_send_json_error();
+        }
+        
+        $id = attachment_url_to_postid( $_REQUEST['url'] );
+        if ( ! $id ) {
+            wp_send_json_error();
+        }
+        
+        $_REQUEST['id'] = $id;
+        wp_ajax_get_attachment();
+        die();
     }
     
     public function delete_attachment($postid) {
@@ -19,30 +38,22 @@ class CoverImage extends base\Base implements api\IMetadata {
     }
     
     public function scripts($assets) {
-        // Silence is golden.
+        $assets->enqueueLibraryScript('wp-media-picker', 'wp-media-picker/wp-media-picker.min.js');
+        $assets->enqueueLibraryStyle('wp-media-picker', 'wp-media-picker/wp-media-picker.min.css');
     }
     
     public function content($content, $folder) {
         $id = $this->getAttachmentID($folder->getId());
-        $filename = basename(get_attached_file($id));
-        $url = wp_get_attachment_image_src($id, 'full');
-        $display = 'display:' . ($url === false ? 'none' : 'inline-block');
-
-        $content .= '<label>' . __('Cover image', RML_TD) . ' <a href="#" class="rml-coverimage-remove" style="text-decoration:none;' . $display . '"><span class="dashicons dashicons-no-alt"></span>Remove</a></label>
-            <img class="rml-coverimage" src="' . ($url === false ? '' : $url[0]) . '" style="margin:5px 0;max-width:100%;height:auto;' . $display . ';" />
-            <input name="coverImage" type="hidden" value="' . $id . '"/>
-            <input class="regular-text" data-wprfc-visible="1" data-wprfc="metaCoverImage" value="' . esc_attr($filename) . '" type="text" disabled />';
-        
-        return $content;
+        return $content . '<label>' . __('Cover image', RML_TD) . '</label><input name="coverImage" data-wprfc-visible="1" data-wprfc="metaCoverImage" value="' . esc_attr($id) . '" type="text" />';
     }
     
     public function save($response, $folder, $request) {
         $fid = $folder->getId();
         $coverImage = $this->getAttachmentID($fid);
-        $new = $request->get_param('coverImage');
+        $new = (int) $request->get_param('coverImage');
         
-        if (isset($new) && $coverImage !== $new && wp_attachment_is_image($new)) {
-            if (strlen($new) > 0) {
+        if ($coverImage !== $new) {
+            if (wp_attachment_is_image($new)) {
                 update_media_folder_meta($fid, "coverImage", $new);
             }else{
                 // Delete it
@@ -53,6 +64,6 @@ class CoverImage extends base\Base implements api\IMetadata {
     }
     
     public function getAttachmentID($fid) {
-        return get_media_folder_meta($fid, "coverImage", true);
+        return (int) get_media_folder_meta($fid, "coverImage", true);
     }
 }

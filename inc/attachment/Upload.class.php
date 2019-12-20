@@ -1,12 +1,14 @@
 <?php
 namespace MatthiasWeb\RealMediaLibrary\attachment;
+use MatthiasWeb\RealMediaLibrary\general;
+use MatthiasWeb\RealMediaLibrary\base;
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 /**
  * Handling uploader, so files can be uploaded directly to a folder.
  */
-class Upload {
+class Upload extends base\Base {
 	private static $me = null;
         
     private function __construct() {
@@ -34,16 +36,28 @@ class Upload {
         global $pagenow;
         
         if (wp_rml_active()) {
+            if (!is_admin() && !general\Options::load_frontend()) {
+                return;
+            }
+            
             // Get the options depending on the current page
+            $options = array(
+                'name' => 'rmlFolder',
+                'disabled' => array(RML_TYPE_COLLECTION),
+                'title' => __('Select destination folder', RML_TD)
+            );
+            
+            if (isset($_GET['rml_preselect'])) {
+                $options['selected'] = $_GET['rml_preselect'];
+            }
+            
             if ($pagenow === "media-new.php") {
-                $options = '<select class="attachments-filter-preUploadUi" name="rmlFolder">' . wp_rml_dropdown(wp_rml_last_queried_folder(), array(RML_TYPE_COLLECTION), false) . '</select>';
                 $label = __("You can simply upload files directly to a folder. Select a folder and upload files.", RML_TD);
             }else{
-                $options = '<select data-wprfc-visible="1" data-wprfc="preUploadUi"><option selected="true" value="-1">' . __("Loading...", RML_TD) . '</option></select>';
                 $label = __("upload to folder", RML_TD);
             }
             
-            echo '<p class="attachments-filter-upload-chooser">' . $label . '</p><p>' . $options . '</p>';
+            echo '<p class="attachments-filter-upload-chooser">' . $label . '</p><p>' . wp_rml_selector($options) . '</p>';
         }
     }
     

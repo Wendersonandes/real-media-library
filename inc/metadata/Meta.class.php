@@ -67,7 +67,7 @@ class Meta extends base\Base implements api\IMetadata {
          * 
          * @param {array} $tabs The tabs with key (unique tab name) and value (display text)
          * @hook RML/$type/Groups
-         * @returns {array} The tabs
+         * @return {array} The tabs
          * @since 3.3
          */
         $tabs = apply_filters("RML/" . ($type === RML_TYPE_ALL ? "User/Settings" : "Folder/Meta") . "/Groups", array(
@@ -94,7 +94,7 @@ class Meta extends base\Base implements api\IMetadata {
                  * @param {string} $content The HTML content
                  * @param {int} $user The current user id
                  * @hook RML/User/Settings/Content[/$tabGroup]
-                 * @returns {string} The HTML content
+                 * @return {string} The HTML content
                  * @since 3.2
                  */
                 $content .= apply_filters('RML/User/Settings/Content' . $hookAddition, "", get_current_user_id());
@@ -106,7 +106,7 @@ class Meta extends base\Base implements api\IMetadata {
                  * @param {string} $content The HTML content
                  * @param {IFolder} $folder The folder object
                  * @hook RML/Folder/Meta/Content[/$tabGroup]
-                 * @returns {string} The HTML content
+                 * @return {string} The HTML content
                  * @since 3.3.1 $folder can never be null
                  */
                 $content .= apply_filters('RML/Folder/Meta/Content' . $hookAddition, "", $folder);

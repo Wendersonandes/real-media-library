@@ -46,6 +46,8 @@ class WPML extends base\Base {
             add_filter('RML/Tree/SQLStatement/JOIN', array($this, 'sqlstatement_join'));
             add_filter('RML/Tree/CountAttachments', array($this, 'wpml_count_attachments'));
             add_filter('RML/Localize', array($this, 'localize'));
+            add_filter('RML/Sortable/PostsClauses', array($this, 'sqlstatement_order'), 10, 3);
+            add_filter('RML/Sortable/Ids', array($this, 'sortable_ids'), 10);
             
             // Set the RML + WPML language to the user
             if (is_user_logged_in()) {
@@ -62,12 +64,43 @@ class WPML extends base\Base {
     
     public function localize($arr) {
         global $sitepress;
-        $current = $sitepress->get_current_language();
-        $default = $sitepress->get_default_language();
-        if ($current !== $default) {
-            $arr['restQuery']['lang'] = $current;
+        if (!$this->isDefaultLanguage()) {
+            $arr['restQuery']['lang'] = $sitepress->get_current_language();
         }
         return $arr;
+    }
+    
+    public function sqlstatement_order($pieces, $query, $folder) {
+        global $sitepress, $wpdb;
+        
+        // Apply only when not-default language
+        if (!$this->isDefaultLanguage()) {
+            $pieces['fields'] = str_replace('rmlorder.nr', 'IFNULL(rmlorderwpml.nr, rmlorder.nr)', $pieces['fields']);
+            $pieces['join'] .= ' LEFT JOIN ' . $wpdb->prefix . 'icl_translations rmlorderwpmlicl
+            	ON rmlorderwpmlicl.trid = t.trid AND rmlorderwpmlicl.source_language_code IS NULL
+            LEFT JOIN ' . $this->getTableName('posts') . ' rmlorderwpml
+            	ON rmlorderwpmlicl.element_id = rmlorderwpml.attachment ';
+            $pieces['orderby'] = str_replace('rmlorder.nr', 'IFNULL(rmlorderwpml.nr, rmlorder.nr)', $pieces['orderby']);
+        }
+        
+        return $pieces;
+    }
+    
+    public function sortable_ids($ids) {
+        global $sitepress;
+        
+        // Apply only when not-default language
+        if (!$this->isDefaultLanguage()) {
+            $ids['attachment'] = $this->getDefaultId($ids['attachment']);
+            if ($ids['next'] !== false) {
+                $ids['next'] = $this->getDefaultId($ids['next']);
+            }
+            if ($ids['lastInView'] !== false) {
+                $ids['lastInView'] = $this->getDefaultId($ids['lastInView']);
+            }
+        }
+        
+        return $ids;
     }
     
     /**
@@ -275,6 +308,16 @@ class WPML extends base\Base {
             INNER JOIN $wpdb->posts AS p ON p.id = wpmlt.element_id
             WHERE wpmlt.element_type =  'post_attachment'
             AND wpmlt.language_code =  '$lang'");
+    }
+    
+    public function isDefaultLanguage() {
+        global $sitepress;
+        return $sitepress->get_current_language() === $sitepress->get_default_language();
+    }
+    
+    public function getDefaultId($attachment) {
+        global $sitepress;
+        return apply_filters('wpml_object_id', $attachment, 'post', true, $sitepress->get_default_language());
     }
     
     public static function getInstance() {

@@ -41,7 +41,7 @@ if (!function_exists('get_media_folder_meta')) {
      * @param int $folder_id Folder ID.
      * @param string $key The meta key to retrieve. By default, returns data for all keys.
      * @param boolean $single Whether to return a single value. Default false.
-     * @returns mixed Will be an array if $single is false. Will be value of meta data field if $single is true.
+     * @return mixed Will be an array if $single is false. Will be value of meta data field if $single is true.
      */
     function get_media_folder_meta( $folder_id, $key = '', $single = false ) {
         metadata\Meta::getInstance(); // Necessery checks to prepare metas
@@ -61,7 +61,7 @@ if (!function_exists('add_media_folder_meta')) {
      * @param string $meta_key Metadata name.
      * @param mixed $meta_value Metadata value. Must be serializable if non-scalar.
      * @param boolean $unique Whether the same key should not be added.
-     * @returns int|false Meta ID on success, false on failure.
+     * @return int|false Meta ID on success, false on failure.
      */
     function add_media_folder_meta( $folder_id, $meta_key, $meta_value, $unique = false ) {
         metadata\Meta::getInstance(); // Necessery checks to prepare metas
@@ -82,7 +82,7 @@ if (!function_exists('update_media_folder_meta')) {
      * @param string $meta_key Metadata key.
      * @param mixed $meta_value Metadata value. Must be serializable if non-scalar.
      * @param mixed $prev_value Previous value to check before removing.
-     * @returns int|bool Meta ID if the key didn't exist, true on successful update, false on failure.
+     * @return int|bool Meta ID if the key didn't exist, true on successful update, false on failure.
      */
     function update_media_folder_meta( $folder_id, $meta_key, $meta_value, $prev_value = '' ) {
         metadata\Meta::getInstance(); // Necessery checks to prepare metas
@@ -103,7 +103,7 @@ if (!function_exists('delete_media_folder_meta')) {
      * @param int $folder_id Folder ID.
      * @param string $meta_key Metadata name.
      * @param mixed $meta_value Metadata value. Must be serializable if non-scalar.
-     * @returns boolean True on success, false on failure.
+     * @return boolean True on success, false on failure.
      */
     function delete_media_folder_meta( $folder_id, $meta_key, $meta_value = '' ) {
         metadata\Meta::getInstance(); // Necessery checks to prepare metas
@@ -117,7 +117,7 @@ if (!function_exists('delete_media_folder_meta_by_key')) {
      * Delete everything from folder meta matching meta key.
      * 
      * @param string $folder_meta_key Key to search for when deleting.
-     * @returns boolean Whether the post meta key was deleted from the database.
+     * @return boolean Whether the post meta key was deleted from the database.
      */
     function delete_media_folder_meta_by_key( $folder_meta_key ) {
         metadata\Meta::getInstance(); // Necessery checks to prepare metas
@@ -130,7 +130,7 @@ if (!function_exists('truncate_media_folder_meta')) {
      * Remove all metas of a folder. Use this with caution!!
      * 
      * @param int $folder_id Folder ID
-     * @returns int result of $wpdb->query
+     * @return int result of $wpdb->query
      */
     function truncate_media_folder_meta($folder_id) {
         metadata\Meta::getInstance(); // Necessery checks to prepare metas
@@ -147,29 +147,29 @@ if (!function_exists('add_rml_user_settings_box')) {
     /**
      * Add a visible content to the general user settings dialog.
      * 
-     * @param string $name Unique name for this meta box
-     * @param IUserSettings $obj The object which implements IUserSettings
-     * @param boolean $hasScripts boolean Load the resources if exists
-     * @param int $priority Priority for actions and filters
-     * @param string $contentGroup The tab group for the meta settings, see example for adding a new group
-     * @returns boolean
-     * @example Adding a new tab "Physical" group to user settings dialog (or RML/Folder/Meta/Groups for folder details)
-     * <code>add_filter("RML/User/Settings/Groups", function($groups) {
+     * Example: Adding a new tab "Physical" group to user settings dialog (or RML/Folder/Meta/Groups for folder details)
+     * ```php
+     * add_filter("RML/User/Settings/Groups", function($groups) {
      *  $groups["physical"] = __("Physical");
      *  return $groups;
-     * });</code>
+     * });
+     * ```
+     * 
+     * @param string $name Unique name for this meta box
+     * @param IUserSettings $obj The object which implements IUserSettings
+     * @param boolean $deprecated boolean Load the resources if exists (since 4.3.0 deprecated, scripts method is always called)
+     * @param int $priority Priority for actions and filters
+     * @param string $contentGroup The tab group for the meta settings, see example for adding a new group
+     * @return boolean
      */
-    function add_rml_user_settings_box($name, $obj, $hasScripts = false, $priority = 10, $contentGroup = "") {
+    function add_rml_user_settings_box($name, $obj, $deprecated = false, $priority = 10, $contentGroup = "") {
         if (!metadata\Meta::getInstance()->add($name, $obj)) {
             return false;
         }
         
         add_filter('RML/User/Settings/Content' . (empty($contentGroup) ? "" : "/" . $contentGroup), array($obj, 'content'), $priority, 2);
         add_filter('RML/User/Settings/Save', array($obj, 'save'), $priority, 3);
-        
-        if ($hasScripts) {
-            add_action("RML/Scripts", array($obj, "scripts"), $priority);
-        }
+        add_action("RML/Scripts", array($obj, "scripts"), $priority);
         return true;
     }
 }
@@ -178,17 +178,20 @@ if (!function_exists('add_rml_meta_box')) {
     /**
      * Add a visible content to the folder details dialog.
      * 
+     * Example: Adding a new tab "Physical" group to meta dialog (or RML/User/Settings/Groups for user settings)
+     * ```php
+     * add_filter("RML/Folder/Meta/Groups", function($groups) {
+     *  $groups["physical"] = __("Physical");
+     *  return $groups;
+     * });
+     * ```
+     * 
      * @param string $name Unique name for this meta box
      * @param IMetadata $obj The object which implements IMetadata
      * @param boolean $hasScripts boolean Load the resources if exists
      * @param int $priority Priority for actions and filters
      * @param string $contentGroup The tab group for the meta settings, see example for adding a new group
-     * @returns boolean
-     * @example Adding a new tab "Physical" group to meta dialog (or RML/User/Settings/Groups for user settings)
-     * <code>add_filter("RML/Folder/Meta/Groups", function($groups) {
-     *  $groups["physical"] = __("Physical");
-     *  return $groups;
-     * });</code>
+     * @return boolean
      */
     function add_rml_meta_box($name, $obj, $hasScripts = false, $priority = 10, $contentGroup = "") {
         if (!metadata\Meta::getInstance()->add($name, $obj)) {
@@ -197,10 +200,7 @@ if (!function_exists('add_rml_meta_box')) {
         
         add_filter('RML/Folder/Meta/Content' . (empty($contentGroup) ? "" : "/" . $contentGroup), array($obj, 'content'), $priority, 2);
         add_filter('RML/Folder/Meta/Save', array($obj, 'save'), $priority, 3);
-        
-        if ($hasScripts) {
-            add_action("RML/Scripts", array($obj, "scripts"), $priority);
-        }
+        add_action("RML/Scripts", array($obj, "scripts"), $priority);
         return true;
     }
 }

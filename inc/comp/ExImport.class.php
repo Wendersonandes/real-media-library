@@ -148,7 +148,7 @@ class ExImport extends base\Base {
     /**
      * Get the folder tree of a taxonomy for import process.
      * 
-     * @returns array
+     * @return array
      */
     public function getCategories($tax) {
         global $wpdb;
@@ -166,7 +166,7 @@ class ExImport extends base\Base {
     /**
      * Get the folder tree for import process.
      * 
-     * @returns array
+     * @return array
      */
     public function getFolders() {
         global $wpdb;
@@ -203,7 +203,7 @@ class ExImport extends base\Base {
     /**
      * Get the hierarchical taxonomies for the media taxonomy.
      * 
-     * @returns string
+     * @return string
      */
     public function getHierarchicalTaxos() {
         // Fetch the taxonomies which are able to filter

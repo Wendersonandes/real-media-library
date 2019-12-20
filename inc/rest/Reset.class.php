@@ -61,6 +61,11 @@ class Reset extends base\Base {
             'methods' => 'DELETE',
             'callback' => array($this, 'resetDebug')
         ));
+        
+        register_rest_route(Service::SERVICE_NAMESPACE, '/notice/license', array(
+            'methods' => 'DELETE',
+            'callback' => array($this, 'routeNoticeDismissLicense')
+        ));
     }
     
     /**
@@ -234,6 +239,20 @@ class Reset extends base\Base {
                 break;
         }
         
+        return new \WP_REST_Response(true);
+    }
+    
+    /**
+     * @api {delete} /realmedialibrary/v1/notice/license Dismiss the license notice for a given time (transient)
+     * @apiName DismissLicenseNotice
+     * @apiGroup Plugin
+     * @apiVersion 4.1.0
+     * @since 4.1.0
+     * @apiPermission install_plugins
+     */
+    public function routeNoticeDismissLicense() {
+        if (($permit = Service::permit('install_plugins')) !== null) return $permit;
+        $this->getCore()->isLicenseNoticeDismissed(true);
         return new \WP_REST_Response(true);
     }
     

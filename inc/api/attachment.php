@@ -60,7 +60,7 @@ if (!function_exists('wp_rml_get_attachments')) {
      * @param int $fid The folder id
      * @param string $order The order statement
      * @param string $orderby The order by statement
-     * @returns null|int[] Null if folder not exists or array of post ids
+     * @return null|int[] Null if folder not exists or array of post ids
      */
     function wp_rml_get_attachments($fid, $order = null, $orderby = null) {
         $folder = wp_rml_get_object_by_id($fid);
@@ -76,7 +76,7 @@ if (!function_exists('wp_attachment_folder')) {
      * 
      * @param int $attachmentId The attachment ID, if you pass an array you get an array of folder IDs
      * @param mixed $default If no folder was found for this, this value is returned for the attachment
-     * @returns int|mixed Folder ID or $default or Array
+     * @return int|mixed Folder ID or $default or Array
      */
     function wp_attachment_folder($attachmentId, $default = null) {
         return attachment\Filter::getInstance()->getAttachmentFolder($attachmentId, $default);
@@ -91,7 +91,7 @@ if (!function_exists('wp_attachment_order_update')) {
      * @param int $attachmentId The attachment which should be moved
      * @param int $nextId The attachment next to the currentId, if it is false the currentId should be moved to the end of table.
      * @param int $lastIdInView If you have pagination, you can pass the last id from this view
-     * @returns boolean True or array with error strings
+     * @return boolean True or array with error strings
      */
     function wp_attachment_order_update($folderId, $attachmentId, $nextId, $lastIdInView = false) {
         // Get folder
@@ -165,7 +165,7 @@ if (!function_exists('wp_rml_create_shortcuts')) {
      * @param int $to Folder ID, if folder not exists then root will be
      * @param int[] $ids Array of attachment ids
      * @param boolean $supress_validation Supress the permission validation
-     * @returns boolean|string[] True or Array with errors
+     * @return boolean|string[] True or Array with errors
      */
     function wp_rml_create_shortcuts($to, $ids, $supress_validation = false) {
         return wp_rml_move($to, $ids, $supress_validation, true);
@@ -176,7 +176,7 @@ if (!function_exists('wp_rml_created_shortcuts_last_ids')) {
     /**
      * If you create shortcuts you can get the ids for those shortcuts with this function.
      * 
-     * @returns int[]
+     * @return int[]
      */
     function wp_rml_created_shortcuts_last_ids() {
         return attachment\Shortcut::getInstance()->getLastIds();
@@ -189,7 +189,7 @@ if (!function_exists('wp_attachment_ensure_source_file')) {
      * or has generelly shortcuts.
      * 
      * @param int|WP_Post $post The attachment id or a WP_Post object
-     * @returns int|WP_Post
+     * @return int|WP_Post
      */
     function wp_attachment_ensure_source_file($post) {
         $isShortcut = wp_attachment_is_shortcut($post, true);
@@ -207,7 +207,7 @@ if (!function_exists('wp_attachment_has_shortcuts')) {
      * 
      * @param int $postId The attachment id
      * @param int $fid The folder id, if false, it checks if there generelly exists shortcuts
-     * @returns boolean
+     * @return boolean
      */
     function wp_attachment_has_shortcuts($postId, $fid = false) {
         global $wpdb;
@@ -230,7 +230,7 @@ if (!function_exists('wp_attachment_get_shortcuts')) {
      * @param int $postId The attachment id
      * @param int $fid The folder id, if false, it checks if there generelly exists shortcuts
      * @param boolean $extended If true the result is an array with all informations about the associated folder
-     * @returns mixed
+     * @return mixed
      */
     function wp_attachment_get_shortcuts($postId, $fid = false, $extended = false) {
         global $wpdb;
@@ -240,7 +240,7 @@ if (!function_exists('wp_attachment_get_shortcuts')) {
         $select = $extended ? ", rml.*" : "";
         $orderby = $extended ? "ORDER BY name" : "";
         if ($fid !== false) {
-            $sql = $wpdb->prepare("SELECT p.attachment, p.fid AS folderId, $select FROM $table_name AS p $join WHERE p.isShortcut=%d AND p.fid=%d $orderby",
+            $sql = $wpdb->prepare("SELECT p.attachment, p.fid AS folderId $select FROM $table_name AS p $join WHERE p.isShortcut=%d AND p.fid=%d $orderby",
                 $postId, $fid);
         }else{
             $sql = $wpdb->prepare("SELECT p.attachment, p.fid AS folderId $select FROM $table_name AS p $join WHERE p.isShortcut=%d $orderby",
@@ -282,7 +282,7 @@ if (!function_exists('_wp_rml_synchronize_attachment')) {
      * @param int $postId The post ID
      * @param int $fid The folder ID
      * @param boolean $isShortcut true = Is shortcut in the given folder, false = Is no shortcut, mainly in this folder
-     * @returns boolean
+     * @return boolean
      */
     function _wp_rml_synchronize_attachment($postId, $fid, $isShortcut = false) {
         return attachment\Shortcut::getInstance()->create($postId, $fid, $isShortcut);

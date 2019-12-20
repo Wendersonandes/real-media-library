@@ -9,6 +9,9 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' ); // Avoid direct file
  * Enables the /attachments REST.
  */
 class Attachment extends base\Base {
+    
+    const MODIFIER_TYPE_BULK_MOVE = 'bulkMove';
+    
     /**
      * Register endpoints.
      */
@@ -27,6 +30,35 @@ class Attachment extends base\Base {
             'methods' => 'PUT',
             'callback' => array($this, 'routeBulkMove')
         ));
+    }
+    
+    /**
+     * Extend the WP core REST API to allow orderby and rml_folder in
+     * wp-json/wp/v2/media.
+     * 
+     * @since 4.5.3
+     */
+    public function rest_attachment_collection_params($params) {
+        $params['orderby']['enum'][] = 'rml';
+        $params['rml_folder'] = array(
+			'description' => __('Fetch only media in a folder by folder id.', RML_TD),
+			'type' => 'integer',
+		);;
+        return $params;
+    }
+    
+    /**
+     * Extend the WP core REST API to parse orderby and rml_folder in
+     * wp-json/wp/v2/media.
+     * 
+     * @since 4.5.3
+     */
+    public function rest_attachment_query($args, $request) {
+        $fid = $request->get_param('rml_folder');
+		if (isset($fid)) {
+			$args['rml_folder'] = $fid;
+		}
+        return $args;
     }
     
     /**
@@ -49,7 +81,13 @@ class Attachment extends base\Base {
         $lastIdInView = $request->get_param('lastId');
         
         if (!empty($folderId) && !empty($nextId)) {
-            wp_attachment_order_update($folderId, $attachmentId, $nextId, $lastIdInView);
+            $update = wp_attachment_order_update($folderId, $attachmentId, $nextId, $lastIdInView);
+            
+            if (is_array($update)) {
+                return new \WP_Error('rest_rml_folder_content_order_failed', implode(' ', $update), array('status' => 500));
+            }else{
+                return new \WP_REST_Response(true);
+            }
         }
     }
     
@@ -95,9 +133,9 @@ class Attachment extends base\Base {
             return new \WP_Error('rest_rml_attachment_bulk_move_failed', implode(' ', $result), array('status' => 500));
         }else{
             wp_rml_structure_reset();
-            return new \WP_REST_Response(array(
+            return new \WP_REST_Response(Service::responseModify(self::MODIFIER_TYPE_BULK_MOVE, array(
                 'counts' => \MatthiasWeb\RealMediaLibrary\attachment\Structure::getInstance()->getFolderCounts()
-            ));
+            )));
         }
     }
 }

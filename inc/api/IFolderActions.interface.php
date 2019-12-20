@@ -11,15 +11,19 @@ namespace MatthiasWeb\RealMediaLibrary\api;
 interface IFolderActions {
     /**
      * Fetch all attachment ids currently in this folder. It uses the
-     * default WP_Query to fetch the ids. You can also use the WP_Query like: <code>$query = new \WP_Query(array(
+     * default WP_Query to fetch the ids. You can also use the WP_Query like:
+     * ```php
+     * $query = new \WP_Query(array(
      *  	'post_status' => 'inherit',
      *  	'post_type' => 'attachment',
-     *  	'rml_folder' => 4
-     * ));</code>
+     *  	'rml_folder' => 4,
+     *      'rml_include_children' => false // (optional) Include files of subfolder, you have to use wp_rml_all_children_sql_supported(false, 'function') for checking support
+     * ));
+     * ```
      * 
      * @param string $order The order "ASC" or "DESC"
      * @param string $orderby Use "rml" to get ids ordered by custom order
-     * @returns int[] Post ids
+     * @return int[] Post ids
      */
     public function read($order = null, $orderby = null);
     
@@ -29,9 +33,26 @@ interface IFolderActions {
      * @param integer $parentId The parent id
      * @param integer $nextFolderId The next folder id it should be prepend or false for the end
      * @throws Exception
-     * @returns boolean|string[] true or array with errors
+     * @return boolean|string[] true or array with errors
      */
     public function relocate($parentId, $nextFolderId = false);
+    
+    /**
+     * Start to order the given folder subfolders by a given order type.
+     * 
+     * @param string $orderby The ordertype key
+     * @return boolean
+     * @since 4.4
+     */
+    public function orderSubfolders($orderby, $writeMetadata = true);
+    
+    /**
+     * Reset the subfolders order'.
+     * 
+     * @return boolean
+     * @since 4.4
+     */
+    public function resetSubfolderOrder();
     
     /**
      * Reindex the children folders so the "ord" number is setted right.
@@ -62,6 +83,13 @@ interface IFolderActions {
     public function updateThisAndChildrensAbsolutePath();
     
     /**
+     * Sets the folders visibility to the user.
+     * 
+     * @param boolean $visible
+     */
+    public function setVisible($visible);
+    
+    /**
      * Set restrictions for this folder. Allowed restrictions for folders:
      * 
      * <ul>
@@ -77,7 +105,7 @@ interface IFolderActions {
      * You can append a ">" after each permission so it is inherited in each created subfolder: "cre>", "ins>", ...
      * 
      * @param string[] $restrictions Array with restrictions
-     * @returns boolean
+     * @return boolean
      */
     public function setRestrictions($restrictions = array());
     
@@ -88,7 +116,7 @@ interface IFolderActions {
      * @param int $ord The order number
      * @param boolean $force If true no permission checks are executed
      * @throws Exception
-     * @returns boolean
+     * @return boolean
      */
     public function setParent($id, $ord = -1, $force = false);
     
@@ -99,7 +127,7 @@ interface IFolderActions {
      * @param string $name String New name of the folder
      * @param boolean $supress_validation Supress the permission validation
      * @throws Exception
-     * @returns boolean
+     * @return boolean
      */
     public function setName($name, $supress_validation = false);
 }

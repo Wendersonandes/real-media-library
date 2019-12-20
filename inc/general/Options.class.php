@@ -201,7 +201,7 @@ class Options extends base\Base {
     /**
      * Is RML allowed to load on frontend? (Non-Admin area)
      * 
-     * @returns boolean
+     * @return boolean
      */
     public static function load_frontend() {
         return get_option( 'rml_load_frontend', '1' ) === '1';

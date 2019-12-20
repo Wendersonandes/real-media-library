@@ -44,7 +44,7 @@ interface IStructure {
      * 
      * @param integer $id The id of the folder
      * @param boolean $nullForRoot If set to false and $id == -1 then the Root instance is returned
-     * @returns IFolder The folder object or null if not found
+     * @return IFolder The folder object or null if not found
      * @see wp_rml_get_object_by_id()
      * @see wp_rml_get_by_id()
      */
@@ -54,7 +54,7 @@ interface IStructure {
      * Get a folder by absolute path.
      * 
      * @param string $path The path
-     * @returns IFolder The folder object or null if not found
+     * @return IFolder The folder object or null if not found
      * @see wp_rml_get_by_absolute_path
      */
     public function byAbsolutePath($path);
@@ -62,14 +62,14 @@ interface IStructure {
     /**
      * Get the SQL query result instead of IFolder objects.
      * 
-     * @returns object[] The SQL result
+     * @return object[] The SQL result
      */
     public function getRows();
     
     /**
      * Get all SQL query results as IFolder objects.
      * 
-     * @returns IFolder[] The folders
+     * @return IFolder[] The folders
      */
     public function getParsed();
     
@@ -83,7 +83,7 @@ interface IStructure {
     
     /**
      * Get all SQL query results placed to a tree. It is fully resolved with all hierarchical
-     * plain objects of the folders.
+     * plain objects of the folders expect the invisible nodes.
      * 
      * @return object[]
      */
@@ -92,21 +92,21 @@ interface IStructure {
     /**
      * Get the attachment count for this structure.
      * 
-     * @returns integer Count
+     * @return integer Count
      */
     public function getCntAttachments();
     
     /**
      * Get the attachment count for the "/ Unorganized" folder for this structure.
      * 
-     * @returns integer Count
+     * @return integer Count
      */
     public function getCntRoot();
     
     /**
      * Get the custom data.
      * 
-     * @returns array Data
+     * @return array Data
      */
     public function getData();
     

@@ -38,15 +38,26 @@ abstract class Assets extends Base {
      * src is not found in the cachebuster (inc/others/cachebuster.php) it falls back to RML_VERSION.
      * 
      * @param string $handle Name of the script. Should be unique.
-     * @param string $src The src relative to public/dist or public/dev folder (when $isLib is false)
+     * @param string|string[] $src The src relative to public/dist or public/dev folder (when $isLib is false). If you pass an array the first found file will be included
      * @param array $deps An array of registered script handles this script depends on.
      * @param boolean $in_footer Whether to enqueue the script before </body> instead of in the <head>.
      * @param boolean $isLib If true the public/lib/ folder is used.
      * @see https://developer.wordpress.org/reference/functions/wp_enqueue_script/ For parameters
      */
     public function enqueueScript($handle, $src = '', $deps = array(), $in_footer = false, $isLib = false) {
-        $src = $this->getPublicFolder($isLib) . $src;
-        wp_enqueue_script($handle, plugins_url($src, RML_FILE), array(), $this->getCachebusterVersion($src, $isLib), true);
+        if (!is_array($src)) {
+            $src = array($src);
+        }
+        
+        $publicFolder = $this->getPublicFolder($isLib);
+        foreach ($src as $s) {
+            $publicSrc = $publicFolder . $s;
+            $path = path_join(RML_PATH, $publicSrc);
+            if (file_exists($path)) {
+                wp_enqueue_script($handle, plugins_url($publicSrc, RML_FILE), $deps, $this->getCachebusterVersion($publicSrc, $isLib), true);
+                break;
+            }
+        }
     }
     
     /**
@@ -72,7 +83,7 @@ abstract class Assets extends Base {
      */
     public function enqueueStyle($handle, $src = '', $deps = array(), $media = 'all', $isLib = false) {
         $src = $this->getPublicFolder($isLib) . $src;
-        wp_enqueue_style($handle, plugins_url($src, RML_FILE), array(), $this->getCachebusterVersion($src, $isLib), $media);
+        wp_enqueue_style($handle, plugins_url($src, RML_FILE), $deps, $this->getCachebusterVersion($src, $isLib), $media);
     }
     
     /**
@@ -91,7 +102,7 @@ abstract class Assets extends Base {
      * @param string $src The src relative to public/ folder
      * @param boolean $isLib If true the cachebuster-lib.php cachebuster is used
      * @see inc/others/cachebuster.php
-     * @returns string RML_VERSION or cachebuster timestamp
+     * @return string RML_VERSION or cachebuster timestamp
      */
     public function getCachebusterVersion($src, $isLib = false) {
         $default = RML_VERSION;
@@ -137,7 +148,7 @@ abstract class Assets extends Base {
      * 
      * @param string $asset The file name relative to the public folder path (dist or dev)
      * @param boolean $isLib If true the public/lib/ folder is used.
-     * @returns string
+     * @return string
      * @see getPublicFolder()
      */
     public function getPluginsUrl($asset, $isLib = false) {
@@ -148,16 +159,32 @@ abstract class Assets extends Base {
      * Gets a public folder depending on the debug mode relative to the plugins folder with trailing slash.
      * 
      * @param boolean $isLib If true the public/lib/ folder is returned.
-     * @returns string
+     * @return string
      */
     public function getPublicFolder($isLib = false) {
         return "public/" . ($isLib ? 'lib' : ($this->isScriptDebug() ? 'dev' : 'dist')) . "/";
     }
     
     /**
+     * Convert a complete URL to IDN url. This is necessery if you use a URIBuilder like
+     * lil-url in your frontend.
+     * 
+     * @see idn_to_ascii
+     * @param string $url The url
+     * @return string
+     */
+    public function getAsciiUrl($url) {
+        require_once(ABSPATH . WPINC . '/Requests/IRI.php');
+    	require_once(ABSPATH . WPINC . '/Requests/IDNAEncoder.php');
+    	$iri = new \Requests_IRI($url);
+		$iri->host = \Requests_IDNAEncoder::encode($iri->ihost);
+		return $iri->uri;
+    }
+    
+    /**
      * Check if SCRIPT_DEBUG is set to true.
      * 
-     * @returns boolean
+     * @return boolean
      */
     public function isScriptDebug() {
         return defined('SCRIPT_DEBUG') && SCRIPT_DEBUG === true;

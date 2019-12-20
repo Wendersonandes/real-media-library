@@ -46,7 +46,7 @@ abstract class ComplexQuery extends base\Base {
      * Get the result from the three different result types: singleQuery, procedure
      * or fallback.
      * 
-     * @returns mixed
+     * @return mixed
      */
     public function getResult() {
         if ($this->isSingleQueriableWithUserDefinedVars()) {
@@ -63,7 +63,7 @@ abstract class ComplexQuery extends base\Base {
      * should return your expected result. It works with both mysqli_connect and mysql_connect.
      * 
      * @see this::isSingleQueriableWithUserDefinedVars()
-     * @returns mixed
+     * @return mixed
      */
     abstract public function singleQuery();
     
@@ -80,7 +80,7 @@ abstract class ComplexQuery extends base\Base {
      * @see this::hasProcedure()
      * @see this::install() 
      * @see this::getProcedureResults()
-     * @returns mixed
+     * @return mixed
      */
     abstract public function procedure();
     
@@ -88,7 +88,7 @@ abstract class ComplexQuery extends base\Base {
      * This function is called when a single query is not possible and procedures
      * are not allowed.
      * 
-     * @returns mixed
+     * @return mixed
      */
     abstract public function fallback();
     
@@ -107,7 +107,7 @@ abstract class ComplexQuery extends base\Base {
      * 
      * @param string $sql The SQL string to execute
      * @param boolean $returnTrue When the CALL is successfully and has no results then return true instead of an empty array
-     * @returns Array or false when an error occured
+     * @return Array or false when an error occured
      */
     final protected function getProcedureResults($sql, $returnTrue = false) {
         $mysqli = $this->getDbh();
@@ -134,7 +134,7 @@ abstract class ComplexQuery extends base\Base {
     /**
      * Checks if a given procedure is available for the current user.
      * 
-     * @returns boolean
+     * @return boolean
      */
     public function hasProcedure($procedure) {
         $wpdb = $this->getWpdb();
@@ -151,7 +151,7 @@ abstract class ComplexQuery extends base\Base {
      * does not resolve @vars in a single query when they are not declared before.
      * This method uses a cache (30 days).
      * 
-     * @returns boolean
+     * @return boolean
      */
     public function isSingleQueriableWithUserDefinedVars() {
         // Cache
@@ -166,7 +166,7 @@ abstract class ComplexQuery extends base\Base {
      * Checks if procedures are allowed. This function uses a cache (30 days).
      * 
      * @see https://stackoverflow.com/questions/609855/check-user-rights-before-attempting-to-create-database
-     * @returns boolean
+     * @return boolean
      */
     public function isProcedurable() {
         // Cache
@@ -187,7 +187,7 @@ abstract class ComplexQuery extends base\Base {
     /**
      * Checks if the database handle is mysqli or not.
      * 
-     * @returns boolean
+     * @return boolean
      */
     public function isMysqli() {
         return $this->wpdb->use_mysqli;

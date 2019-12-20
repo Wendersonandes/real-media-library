@@ -27,7 +27,7 @@ class Filter extends base\Base {
             if ($isArray) {
                 return $folders;
             }else{
-                return isset($folders[0]) ? $folders[0] : (($default === null) ? _wp_rml_root() : $default);
+                return (int) (isset($folders[0]) ? $folders[0] : (($default === null) ? _wp_rml_root() : $default));
             }
         }
         return $default;
@@ -39,66 +39,78 @@ class Filter extends base\Base {
 	 */
 	public function posts_clauses($clauses, $query) {
 	    global $wpdb;
+	    
+	    if ($query->get("post_type") !== "attachment") {
+	    	$query->set('use_rml_folder', false);
+	    	return $clauses;
+	    }
+	    
         $table_name = general\Core::getInstance()->getTableName("posts");
         $saveInCookie = (is_admin() && defined('DOING_AJAX') && DOING_AJAX || $this->getCore()->getAssets()->isScreenBase("upload")) && !headers_sent();
 	    
 	    // Shortcut destinations
 	    $fields = trim($clauses["fields"], ",");
 	    
-	    if (!empty($query->query_vars['parsed_rml_folder'])) {
-	        $folderId = $query->query_vars['parsed_rml_folder'];
-	        $root = _wp_rml_root();
-	        $cookieValue = $root; // Save the last queried cookie for "New media" dropdown
-	        
-	        /**
-	         * Do a filter to restrict the RML posts clauses and apply an own clauses modifier.
-	         * If you want to use your own implementation of posts_clauses you can add this code
-	         * to to restrict the RML standard posts_clauses: <code>$clauses["_restrictRML"] = true;</code>
-	         * 
-	         * @param {array} $clauses The list of clauses for the query
-	         * @param {WP_Query} $query The WP_Query instance
-	         * @param {int} $folderId The folder ID to query
-	         * @param {int} $root The root folder ID, see also {@link RML/RootParent}
-	         * @returns {array} $clauses
-	         * @hook RML/Filter/PostsClauses
-	         * @see https://developer.wordpress.org/reference/hooks/posts_clauses/
-	         */
-	        $clauses = apply_filters("RML/Filter/PostsClauses", $clauses, $query, $folderId, $root);
-	        $builtIn = !isset($clauses["_restrictRML"]);
-	        if (!$builtIn) {
-	            unset($clauses["_restrictRML"]);
+	    // Get folder
+	    $folderId = isset($query->query_vars['parsed_rml_folder']) ? $query->query_vars['parsed_rml_folder'] : 0;
+	    $includeChilds = isset($query->query_vars['rml_include_children']) ? $query->query_vars['rml_include_children'] : false;
+        $root = _wp_rml_root();
+        $cookieValue = $root; // Save the last queried cookie for "New media" dropdown
+        
+        /**
+         * Do a filter to restrict the RML posts clauses and apply an own clauses modifier.
+         * If you want to use your own implementation of posts_clauses you can add this code
+         * to to restrict the RML standard posts_clauses: <code>$clauses["_restrictRML"] = true;</code>
+         * 
+         * @param {array} $clauses The list of clauses for the query
+         * @param {WP_Query} $query The WP_Query instance
+         * @param {int} $folderId The folder ID to query (0 = 'All files')
+         * @param {int} $root The root folder ID, see also {@link RML/RootParent}
+         * @return {array} $clauses
+         * @hook RML/Filter/PostsClauses
+         * @see https://developer.wordpress.org/reference/hooks/posts_clauses/
+         */
+        $clauses = apply_filters("RML/Filter/PostsClauses", $clauses, $query, $folderId, $root);
+        $builtIn = !isset($clauses["_restrictRML"]);
+        if (!$builtIn) {
+            unset($clauses["_restrictRML"]);
+        }
+        
+        $query->set('use_rml_folder', $builtIn);
+        
+        // Change fields
+        $fields = trim($clauses["fields"], ",");
+        $clauses["fields"] = $fields . $wpdb->prepare(", IFNULL(rmlposts.fid, %d) AS fid, IFNULL(rmlposts.isShortcut, 0) AS isShortcut ", $root);
+        
+        // Change join regarding the folder id
+        $clauses["join"] .= " LEFT JOIN $table_name AS rmlposts ON rmlposts.attachment = ".$wpdb->posts.".ID ";
+        
+        // Folder relevant data
+        if ($builtIn === true) {
+	        if (($folderId > 0 || $folderId == $root)) {
+		        if ($folderId > 0) {
+		            // Allow recursive read
+		            if ($includeChilds && wp_rml_all_children_sql_supported(false, 'function')) {
+		                $function_name = $wpdb->prefix . general\Activator::CHILD_UDF_NAME;
+		                $clauses["join"] .= $wpdb->prepare(" AND FIND_IN_SET(rmlposts.fid, " . $function_name . "(%d, false)) ", $folderId);
+		            }else{
+		                $clauses["join"] .= $wpdb->prepare(" AND rmlposts.fid = %d ", $folderId);
+		            }
+		            $clauses["where"] .= " AND rmlposts.fid IS NOT NULL ";
+		        }else{
+		            $clauses["where"] .= $wpdb->prepare(" AND (rmlposts.fid IS NULL OR rmlposts.fid = %d) ", $root);
+		        }
+		        
+		        $cookieValue = $folderId;
+	        }else{
+	        	$cookieValue = 0;
 	        }
-	        
-	        // Folder relevant data
-	        if ($builtIn === true && ($folderId > 0 || $folderId == $root)) {
-    	        // Change fields
-    	        $fields = trim($clauses["fields"], ",");
-    	        $clauses["fields"] = $fields . ", rmlposts.fid, rmlposts.isShortcut ";
-    	        
-    	        // Change join regarding the folder id
-    	        $clauses["join"] .= " LEFT JOIN $table_name AS rmlposts ON rmlposts.attachment = ".$wpdb->posts.".ID ";
-    	        
-    	        if ($folderId > 0) {
-    	            $clauses["join"] .= $wpdb->prepare(" AND rmlposts.fid = %d ", $folderId);
-    	            $clauses["where"] .= " AND rmlposts.fid IS NOT NULL ";
-    	        }else{
-    	            $clauses["where"] .= $wpdb->prepare(" AND (rmlposts.fid IS NULL OR rmlposts.fid = %d) ", $root);
-    	        }
-    	        
-    	        $cookieValue = $folderId;
-	        }
-	        
-	        // Save cookie value
-	        if ($saveInCookie && $builtIn) {
-	            $this->lastQueriedFolder($cookieValue);
-	        }
-	    }else if ($query->get("post_type") === "attachment") {
-	        // Reset last queried folder to unorganized
-	        if ($saveInCookie) {
-	            $this->lastQueriedFolder(0);
-	        }
-	    }
-	    
+        }
+        
+        // Save cookie value
+        if ($saveInCookie && $builtIn) {
+            $this->lastQueriedFolder($cookieValue);
+        }
 	    return $clauses;
 	}
 	
@@ -106,14 +118,21 @@ class Filter extends base\Base {
 	 * Set or get the last queried folder.
 	 * 
 	 * @param int $folder The folder id (0 is handled as "All files" folder)
-	 * @returns int
+	 * @return int
+	 * @since 4.0.8 The data is now saved in user meta data instead of Cookie
 	 */
 	public function lastQueriedFolder($folder = null) {
 	    $key = "rml_" . get_current_blog_id() . "_lastquery";
-	    $prevCookie = isset($_COOKIE[$key]) ? intval($_COOKIE[$key]) : null;
-	    $folder = intval($folder);
-	    if ($folder !== null  && $folder !== $prevCookie) {
-	        setcookie( $key, $folder, strtotime( '+365 days' ), '/' );
+	    $userId = get_current_user_id();
+	    $prevCookie = get_user_meta($userId, $key, true);
+	    $prevCookie = empty($prevCookie) ? null : (int) $prevCookie;
+	    
+	    if ($folder !== null) {
+		    $folder = intval($folder);
+		    if ($folder !== $prevCookie) {
+		    	$prevCookie = $folder;
+		        update_user_meta($userId, $key, $folder);
+		    }
 	    }
 	    return $prevCookie === null ? _wp_rml_root() : $prevCookie;
 	}
@@ -122,17 +141,20 @@ class Filter extends base\Base {
      * Define a new query option for \WP_Query.
      */
     public function pre_get_posts($query) {
+        global $wp_current_filter;
+        if (in_array("snax_map_meta_caps", $wp_current_filter)) {
+            return;
+        }
+        
         $folder = $this->getFolder($query, $this->getCore()->getAssets()->isScreenBase("upload"));
-    	
-    	if ($folder !== null) {
-    	    $query->set('parsed_rml_folder', $folder);
-    	}
+    	$folder = isset($folder) ? $folder : 0;
+	    $query->set('parsed_rml_folder', $folder);
     }
     
     /**
      * Get folder from different sources (WP_Query, GET Query).
      * 
-     * @returns int
+     * @return int
      */
     public function getFolder($query, $fromRequest = false) {
     	$folder = null;
@@ -143,7 +165,7 @@ class Filter extends base\Base {
     			
 	        // Query rml folder from query itself
     		$folder = $queryFolder;
-    	}else if(wp_rml_active()) {
+    	} else if (wp_rml_active()) {
     		if ($fromRequest) {
 	    		if (isset($_REQUEST["rml_folder"])) {
 	    	        // Query rml folder from list mode
@@ -151,14 +173,17 @@ class Filter extends base\Base {
 	        	}else if (isset($_POST["query"]["rml_folder"])) {
 	    	        // Query rml folder from grid mode
 	    	        $folder = $_POST["query"]["rml_folder"];
+	        	}else if (isset($_REQUEST["rmlFolder"])) {
+	    	        // From upload
+	    	        $folder = $_REQUEST["rmlFolder"];
 	        	}else{
-	        		return;
+	        		return null;
 	        	}
     		}
         }else{
     		return null;
     	}
-    	return is_numeric($folder) ? $folder : null;
+    	return is_numeric($folder) ? intval($folder) : null;
     }
     
     /**
@@ -200,22 +225,20 @@ class Filter extends base\Base {
      */
     public function wp_prepare_attachment_for_js($response, $attachment, $meta) {
 		// append attribute
-		$folderId = $this->getFolder(null, true);
-		$response['rmlFolderId'] = !empty($folderId) ? $folderId : _wp_rml_root();
-		$response['rmlGalleryOrder'] = -1;
-		$response['rmlIsShortcut'] = wp_attachment_is_shortcut($attachment->ID, true);
+		$rFolderId = $this->getFolder(null, true);
+		$attachmentFid = isset($attachment->fid) ? $attachment->fid : null;
+		$folderId = $attachmentFid !== null ? intval($attachmentFid) : null;
+		$folderId = $folderId === null ? (!empty($rFolderId) ? $rFolderId : _wp_rml_root()) : $folderId;
 		
-		if (isset($_POST["query"]) &&
-				is_array($_POST["query"]) &&
-				isset($_POST["query"]["orderby"]) &&
-				$_POST["query"]["orderby"] == "rml") {
-			$folder = wp_rml_get_object_by_id($folderId);
-			if (is_rml_folder($folder)) {
-			    $orders = $folder->getContentOrderNumbers();
-    			if (is_array($orders) && isset($orders[$attachment->ID])) {
-    				$response['rmlGalleryOrder'] = $orders[$attachment->ID];
-    			}
-			}
+		$response['rmlFolderId'] = $folderId;
+		$response['rmlGalleryOrder'] = intval($attachment->orderNr);
+		$response['rmlIsShortcut'] = $attachment->isShortcut > 0; //wp_attachment_is_shortcut($attachment->ID, true);
+		
+		// Allow SVG images displayed in media library
+		if ($response['subtype'] === 'svg+xml') {
+		    $response['sizes'] = array('full' => array(
+		        'url' => $response['url']
+		    ));
 		}
 		
 		// return

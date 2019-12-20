@@ -20,6 +20,11 @@ class Service extends base\Base {
     const SERVICE_NAMESPACE = 'realmedialibrary/v1';
     
     /**
+     * @see addResponseModifier
+     */
+    private static $responseModifier = array();
+    
+    /**
      * Register endpoints.
      */
     public function rest_api_init() {
@@ -159,9 +164,9 @@ class Service extends base\Base {
          * @param {int} $userId The current user id
          * @param {WP_REST_Request} $request The server request
          * @hook RML/User/Settings/Save
-         * @returns {array}
+         * @return {array}
          */
-        $response = apply_filters("RML/User/Settings/Save", array(), get_current_user_id(), $request);
+        $response = apply_filters("RML/User/Settings/Save", array('errors' => array(), 'data' => array()), get_current_user_id(), $request);
         
         if (is_array($response) && isset($response["errors"]) && count($response["errors"]) > 0) {
             return new \WP_Error('rest_rml_folder_update', $response["errors"], array('status' => 500));
@@ -202,6 +207,15 @@ class Service extends base\Base {
     }
     
     /**
+     * Exclude REST API Url from SuperPWA cache
+     * 
+     * @link https://superpwa.com/codex/superpwa_sw_never_cache_urls/
+     */
+    function superpwa_exclude_from_cache($superpwa_sw_never_cache_urls) {
+    	return $superpwa_sw_never_cache_urls . ',/\/realmedialibrary\/v1';
+    }
+    
+    /**
      * Checks if the current user has a given capability and throws an error if not.
      * 
      * @param string $cap The capability
@@ -218,11 +232,34 @@ class Service extends base\Base {
     }
     
     /**
+     * Allows you to modify a given type of response body. If you want to find the
+     * different types you must have a look at the Service class constants.
+     * 
+     * @since 4.0.9
+     */
+    public static function addResponseModifier($type, $data) {
+        if (!isset(self::$responseModifier[$type])) {
+            self::$responseModifier[$type] = array();
+        }
+        self::$responseModifier[$type] = array_merge_recursive(self::$responseModifier[$type], $data);
+    }
+    
+    /**
+     * Apply response modifications to a given array.
+     */
+    public static function responseModify($type, $data) {
+        if (isset(self::$responseModifier[$type])) {
+            return array_merge_recursive($data, self::$responseModifier[$type]);
+        }
+        return $data;
+    }
+    
+    /**
      * Get the wp-json URL for a defined REST service.
      * 
      * @param string $namespace The prefix for REST service
      * @param string $endpoint The path appended to the prefix
-     * @returns String Example: https://example.com/wp-json
+     * @return String Example: https://example.com/wp-json
      * @example Service::url(Service::SERVICE_NAMESPACE) // => main path
      */
     public static function getUrl($namespace, $endpoint = '') {

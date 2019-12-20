@@ -16,7 +16,8 @@ interface IMetadata {
      * 
      * <strong>Note:</strong> If you want to use a more complex content
      * in a meta table use something like this:
-     * <code><tr>
+     * ```html
+     * <tr>
      *  <th scope="row">Medium size</th>
      *  <td><fieldset>
      *      <legend class="screen-reader-text"><span>Medium size</span></legend>
@@ -25,14 +26,15 @@ interface IMetadata {
      *      <label for="medium_size_h">Max Height</label>
      *      <input name="medium_size_h" type="number" step="1" min="0" id="medium_size_h" value="300" class="small-text">
      *  </fieldset></td>
-     * </tr></code>
+     * </tr>
+     * ```
      * 
      * If you want to "group" your meta boxes you can use this code to create a empty space:
-     * <code><tr class="rml-meta-margin"></tr></code>
+     * `<tr class="rml-meta-margin"></tr>`
      * 
      * @param string $content the HTML formatted string for the dialog
      * @param IFolder|null $folder The folder object
-     * @returns string Content
+     * @return string Content
      */
     public function content($content, $folder);
     
@@ -40,13 +42,18 @@ interface IMetadata {
      * Save the infos. Add an error to the array to show on the frontend dialog. Add an
      * successful data to receive it in JavaScript.
      * 
-     * <code>$response["errors"][] = "Your error";
-     * $response["data"]["myData"] = "Test";</code>
+     * ```php
+     * $response["errors"][] = "Your error";
+     * $response["data"]["myData"] = "Test";
+     * ```
+     * 
+     * Since v.4.0.8 the minimum PHP version is 4.0.8 and you can use traits in your meta
+     * implementation: metadata\CommonTrait, metadata\CommonFolderTrait or usersettings\CommonUserSettingsTrait.
      * 
      * @param array $response Array of errors and successful data.
      * @param WP_REST_Request $request The server request
      * @param IFolder|null $folder The folder object
-     * @returns array Response
+     * @return array Response
      */
     public function save($response, $folder, $request);
     

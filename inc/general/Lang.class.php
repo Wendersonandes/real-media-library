@@ -11,10 +11,15 @@ class Lang extends base\Base {
     /**
      * Get an array of language keys and translations.
      * 
-     * @returns array
+     * @return array
      */
     public function getItems($assets) {
         return array(
+            'noneSelected' => __('No folder selected', RML_TD),
+            'reloadContent' => __('Reload content', RML_TD),
+            'folder' => __('Folder', RML_TD),
+            'subfolders' => __('Subfolders', RML_TD),
+            'gutenBergBlockSelect' => __('Please select a Media Library folder in the block settings.', RML_TD),
             'warnDelete' => $assets->media_view_strings(false),
             'restrictionsInherits' => __('New folders inherit this restriction', RML_TD),
             'restrictionsSuffix' => __('The current selected folder has some restrictions:', RML_TD),
@@ -25,13 +30,16 @@ class Lang extends base\Base {
             'restrictions.ren' => __('You can not *rename* the folder', RML_TD),
             'restrictions.del' => __('You can not *delete* the folder', RML_TD),
             'restrictions.mov' => __('You can not *move* files outside the folder', RML_TD),
-            'coverImageDropHere' => __('Drop image here', RML_TD),
+            'parent' => __('Parent', RML_TD),
+            'beforeThisNode' => __('Before this node', RML_TD),
+            'beforeThisNodeInfo' => __('If no next node is given the item is put to the end.', RML_TD),
             'uploaderUsesLeftTree' => __('The file is uploaded to the folder you are currently in.', RML_TD),
             'areYouSure' => __('Are you sure?', RML_TD),
             'success' => __('Success'),
             'failed' => __('Failed'),
             'noEntries' => __('No entries found', RML_TD),
             'deleteConfirm' => __('Are you sure to delete *{name}*? All files gets moved to / Unorganized.', RML_TD),
+            'deleteMultipleConfirm' => __('Are you sure to delete *{count} folders*? All files gets moved to / Unorganized.', RML_TD),
             'ok' => __('Ok'),
             'cancel' => __('Cancel'),
             'save' => __('Save'),
@@ -45,9 +53,14 @@ class Lang extends base\Base {
             'addLoadingText' => __('Creating *{name}*...', RML_TD),
             'addSuccess' => __('Successfully created *{name}*', RML_TD),
             'deleteFailedSub' => __('The folder you try to delete has subfolders.', RML_TD),
+            'deleteLoadingText' => __('Deleting *{name}*...', RML_TD),
             'deleteSuccess' => __('Successfully deleted *{name}*', RML_TD),
+            'deleteMultipleSuccess' => __('Successfully deleted *{count} folders*', RML_TD),
+            'sortByDnd' => __('Rearrange tree by drag & drop', RML_TD),
+            'sortByManual' => __('Rearrange *{name}* placement manually', RML_TD),
             'sortLoadingText' => __('Reordering the tree hierarchy...', RML_TD),
             'sortedSuccess' => __('Successfully sorted the tree hierarchy', RML_TD),
+            'sortLoadingText' => __('Reorder subfolders of *{name}*...', RML_TD),
             'filesRemaining' => __('{count} files remaining...', RML_TD),
             'receiveData' => __('Receiving data...', RML_TD),
             'shortcut' => __('Shortcut', RML_TD),
@@ -102,13 +115,52 @@ You can also order the images into *a custom image order* per drag&drop.', RML_T
             'renameToolTipText' => __('Rename the current selected folder.', RML_TD),
             'trashToolTipTitle' => __('Delete', RML_TD),
             'trashToolTipText' => __('Delete the current selected folder.', RML_TD),
+            'trashMultipleToolTipText' => __('Delete the current selected folders.', RML_TD),
             'sortToolTipTitle' => __('Rearrange', RML_TD),
             'sortToolTipText' => __('Change the hierarchical order of the folders.', RML_TD),
             'detailsToolTipTitle' => __('Folder details', RML_TD),
             'detailsToolTipText' => __('Select a folder and view more details about it.', RML_TD),
             'methodNotAllowed405' => __('An error occured during requesting the Real Media Library REST endpoint *{endpoint}* from the server (_405 Method not allowed_). One reason can be that your server configuration is missing something.', RML_TD),
             'methodNotAllowed405LinkText' => __('Click here to learn how to resolve this (external link)', RML_TD),
-            'methodMoved301' => __('It seems the tree could not be fetched because the WP REST API endpoint *tree* is not reachable. Do you use a plugin which disables the WP REST API like *Clearfy*?', RML_TD)
+            'methodMoved301' => __('It seems the tree could not be fetched because the WP REST API endpoint *tree* is not reachable. Do you use a plugin which disables the WP REST API like *Clearfy*?', RML_TD),
+            
+            'noProductLicense' => __('Product license not activated, yet.', RML_TD),
+            'enterLicense' => __('Enter license', RML_TD),
+            'licenseNoticeDismiss' => __('Dismiss notice', RML_TD)
         );
+    }
+    
+    /**
+     * @see https://webschale.de/2015/plugin-language-fallback-wenns-einem-die-sprache-verschlaegt/
+     */
+    public static function override_load_textdomain($override, $domain, $mofile) {
+        $pluginFolder = path_join(RML_PATH, 'languages');
+        if ($domain === RML_TD && !is_readable($mofile) && (substr($mofile, 0, strlen($pluginFolder)) === $pluginFolder)) {
+            $prefix = $domain . '-';
+            $folder = dirname($mofile);
+            $locale = pathinfo(str_replace($prefix, '', basename($mofile)), PATHINFO_FILENAME);
+            $use = null;
+            
+            // Overrides
+            switch ($locale) {
+                case 'de_AT':
+                case 'de_CH':
+                case 'de_CH_informal':
+                case 'de_DE_formal':
+                    $use = 'de_DE';
+                    break;
+                default:
+                    break;
+            }
+            
+            if (!empty($use)) {
+                $usemo = path_join($folder, $prefix . $use . '.mo');
+                if (is_readable($usemo)) {
+                    load_textdomain($domain, $usemo);
+                    return true;
+                }
+            }
+        }
+        return $override;
     }
 }

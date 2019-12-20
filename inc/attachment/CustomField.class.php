@@ -45,21 +45,28 @@ class CustomField extends base\Base {
          * @param {WP_Post} $post The attachment
          * @param {boolean} $isShortcut If true the file is a shortcut
          * @parma {array} $form_fields
-         * @returns {string} The HTML output
+         * @return {string} The HTML output
          * @since 4.0.7
          * @hook RML/CustomField
          */
         $appendHTML = apply_filters('RML/CustomField', '', $post, $isShortcut, $form_fields);
         
+        $selector = wp_rml_selector(array(
+            'selected' => $folderID,
+            'name' => 'rmlFolder',
+            'editable' => $editable,
+            'disabled' => array(RML_TYPE_COLLECTION),
+            'name' => 'attachments[' . $post->ID . '][rml_folder]',
+            'title' => __('Move to another folder', RML_TD)
+        ));
+        
         // Create form field
         $form_fields['rml_dir'] = array(
         	'label' => __('Folder', RML_TD),
         	'input' => 'html',
-        	'html'  => '<div class="rml-folder-edit">' .
-        	    ($editable ? '<select class="rml-wprfc" data-wprfc="customField" data-selected="' . esc_attr($folderID) . '" name="attachments[' . $post->ID . '][rml_folder]"></select>' : '') .
-    	        Structure::getInstance()->getView()->breadcrumb($folderID, $editable) . 
-    	        '</div><p class="description">' . $textToMove . '</p>' . $appendHTML
-        );
+        	'html'  => '<div class="rml-compat-preUploadUi">
+    ' . $selector . '
+</div><p class="description">' . $textToMove . '</p>' . $appendHTML);
         
         // Create form field
         $form_fields['rml_shortcut'] = array(
@@ -74,7 +81,7 @@ class CustomField extends base\Base {
      * Get the HTML shortcut info container.
      * 
      * @param int $postId The post id
-     * @returns string
+     * @return string
      */
     public function getShortcutInfoContainer($postId) {
         $post = get_post($postId);
@@ -115,7 +122,7 @@ class CustomField extends base\Base {
              * @param {string} $output HTML output
              * @param {WP_Post} $post The attachment
              * @param {int} $shortcut If > 0 it is an attachment id (source)
-             * @returns {string} The HTML output
+             * @return {string} The HTML output
              * @hook RML/Shortcut/Info
              */
             apply_filters("RML/Shortcut/Info", $output, $post, $shortcut);
@@ -129,20 +136,23 @@ class CustomField extends base\Base {
      */
     public function attachment_fields_to_save($post, $attachment) {
         if (isset($attachment['rml_folder']) && wp_rml_active()) {
-            if (wp_rml_get_object_by_id($attachment['rml_folder']) === null) {
-                $attachment['rml_folder'] = _wp_rml_root();
-            }
+            $folder = wp_rml_get_object_by_id($attachment['rml_folder']);
+            $folderId = $folder === null ? _wp_rml_root() : $folder->getId();
+            
             // Get previous folder id
-            $updateCount = array(wp_attachment_folder($post["ID"]), $attachment["rml_folder"]);
-            
-            // Update to new folder id
-            $result = wp_rml_move($attachment['rml_folder'], array($post['ID']));
-            if (is_array($result)) {
-                $post['errors']['rml_folder']['errors'][] = implode(" ", $result);
+            $currentFolderId = wp_attachment_folder($post["ID"]);
+            if ($currentFolderId !== $folderId) {
+                $updateCount = array($currentFolderId, $folderId);
+                
+                // Update to new folder id
+                $result = wp_rml_move($folderId, array($post['ID']));
+                if (is_array($result)) {
+                    $post['errors']['rml_folder']['errors'][] = implode(" ", $result);
+                }
+                
+                // Reset the count of both folders manually because we do not use the wp_rml_move api method
+                CountCache::getInstance()->resetCountCache($updateCount);
             }
-            
-            // Reset the count of both folders manually because we do not use the wp_rml_move api method
-            CountCache::getInstance()->resetCountCache($updateCount);
         }
         
         return $post;

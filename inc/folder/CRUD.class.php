@@ -66,7 +66,7 @@ class CRUD extends base\Base {
                  * 
                  * @param {string[]} $errors An array of errors
                  * @hook RML/Validate/Create
-                 * @returns {string[]} When the array has one or more items the creation is cancelled with the string message
+                 * @return {string[]} When the array has one or more items the creation is cancelled with the string message
                  */
                 $errors = apply_filters("RML/Validate/Create", array(), $name, $parent, $type);
                 if (count($errors) > 0) {
@@ -119,6 +119,11 @@ class CRUD extends base\Base {
             $folder = wp_rml_get_object_by_id($id);
             
             if ($folder !== null) {
+                // Check if subfolders
+                if (count($folder->getChildren()) > 0) {
+                    throw new \Exception(__('The folder you try to delete has subfolders.', RML_TD));
+                }
+                
                 // Check if other fails are counted
                 if ($supress_validation === false) {
                     $errors = apply_filters("RML/Validate/Delete", array(), $id, $folder);

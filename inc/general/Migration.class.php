@@ -237,7 +237,7 @@ class Migration extends base\Base {
      * Dismiss an update notice.
      * 
      * @param string $build The build version of the update
-     * @returns boolean
+     * @return boolean
      */
     public function dismiss($build) {
         $migrations = $this->getMigrations();

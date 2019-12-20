@@ -21,7 +21,7 @@ class FolderAlreadyExistsException extends \Exception {
     /**
      * Get the folder of the children in this parent.
      * 
-     * @returns api\IFolder
+     * @return api\IFolder
      */
     public function getFolder() {
         $parent = wp_rml_get_object_by_id($this->getParentId());

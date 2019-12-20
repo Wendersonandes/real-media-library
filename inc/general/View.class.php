@@ -17,9 +17,31 @@ class View extends base\Base {
     }
     
     /**
+     * @see wp_rml_selector()
+     */
+    public function selector($options) {
+        $options = wp_parse_args($options, array(
+            'selected' => _wp_rml_root(),
+            'disabled' => array(),
+            'nullable' => false,
+            'editable' => true,
+            'name' => false,
+            'title' => null
+        ));
+        
+        $name = empty($options['name']) ? '' : 'name="' . $options['name'] . '"';
+        return '<input type="hidden" value="' . esc_attr($options['selected']) . '" ' . $name . '
+            data-nullable="' . esc_attr(($options['nullable'] ? 'true' : 'false')) . '"
+            data-editable="' . esc_attr(($options['editable'] ? 'true' : 'false')) . '"
+            data-disabled="' . esc_attr(join(',', $options['disabled'])) . '"
+            ' . (empty($options['title']) ? '' : 'data-title="' . esc_attr($options['title']) . '"') . '
+            data-wprfc-visible="1" data-wprfc="preUploadUi" />';
+    }
+    
+    /**
      * Create dropdown from the current users tree.
      * 
-     * @returns string HTML
+     * @return string HTML
      */
     public function dropdown($selected, $disabled, $useAll = true) {
         return $this->optionsHTML($selected, null, "", "&nbsp;&nbsp;", $useAll, $disabled);
@@ -52,6 +74,10 @@ class View extends base\Base {
         
         if(!is_null($tree) && count($tree) > 0) {
             foreach($tree as $parent) {
+                if (!$parent->isVisible()) {
+                    continue;
+                }
+                
                 $return .= '<option value="' . $parent->getId() . '" ' . $this->optionsSelected($selected, $parent->getId()) .
                                     ' data-path="/' . esc_attr($parent->getAbsolutePath()) . '"' .
                                     ' data-name="' . esc_attr($parent->getName()) . '"' .
@@ -109,6 +135,10 @@ class View extends base\Base {
         
         if(!is_null($tree) && count($tree) > 0) {
             foreach($tree as $parent) {
+                if (!$parent->isVisible()) {
+                    continue;
+                }
+                
                 $return["names"][] = $spaces . ' ' . $parent->getName();
                 $return["slugs"][] = $parent->getId();
                 $return["types"][] = $parent->getType();
@@ -125,22 +155,6 @@ class View extends base\Base {
         }
         
         return $return;
-    }
-    
-    public function breadcrumb($id, $editable = false) {
-        // Get folder
-        $folder = wp_rml_get_object_by_id($id);
-        if ($folder === null) {
-            return '';
-        }
-        
-        $parents = $folder->getAllParents(null, 2);
-        $parents[] = $folder->getName();
-        return '<div class="rml-wprfc" data-wprfc="breadcrumb"'.
-                    'data-attachment="' . esc_attr($id) . '"'.
-                    'data-path="' . esc_attr(json_encode($parents)) . '"'.
-                    'data-editable="' . esc_attr($editable) . '"></div>'.
-                '<script>jQuery(function() { window.rml.hooks.call("wprfc"); });</script>';
     }
     
     public function getStructure() {

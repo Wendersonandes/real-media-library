@@ -12,21 +12,22 @@
 <img src="https://matthias-web.com/wp-content/uploads/plugins/real-media-library/logo-64.png" />
 <h3>Table of contents</h3>
 <ul>
- <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__what-s-new">What's new?</a></li>
- <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__introduction">Introduction</a></li>
- <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__screenshots">Screenshots</a></li>
- <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__product-description">Product Description</a></li>
- <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__features">Features</a></li>
- <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__faq">FAQ</a></li>
- <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__installation-and-compatibility">Installation and Compatibility</a></li>
- <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__all-known-extensions">Known extensions for RML</a></li>
- <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__you-are-a-developer-and-want-to-extend-rml-yourself">Developer notes (API) for extending RML</a></li>
- <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__we-guarantee-high-quality-products-and-support">Reviews</a></li>
- <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__updates">Changelog and Updates</a></li>
+   <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__what-s-new">What's new?</a></li>
+   <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__introduction">Introduction</a></li>
+   <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__screenshots">Screenshots</a></li>
+   <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__product-description">Product Description</a></li>
+   <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__features">Features</a></li>
+   <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__faq">FAQ</a></li>
+   <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__installation-and-compatibility">Installation and Compatibility</a></li>
+   <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__all-known-extensions">Known extensions for RML</a></li>
+   <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__you-are-a-developer-and-want-to-extend-rml-yourself">Developer notes (API) for extending RML</a></li>
+   <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__we-guarantee-high-quality-products-and-support">Reviews</a></li>
+   <li><a href="https://codecanyon.net/item/wordpress-real-media-library-media-categories-folders/13155134#item-description__updates">Changelog and Updates</a></li>
 </ul>
 <h3>What's new?</h3>
-<img src="https://matthias-web.com/wp-content/uploads/Envato/RML/v4/new-4-0.jpg" />
+<img src="https://matthias-web.com/wp-content/uploads/Envato/RML/v4/new-4-5-green.jpg" />
 <a href="https://matthias-web.com/newsletter-signup"><img src="https://matthias-web.com/wp-content/uploads/Envato/newsletter.gif" /></a>
+<a href="https://matthias-web.com/wordpress/real-media-library/feedback"><img src="https://matthias-web.com/wp-content/uploads/Envato/envato-feedback-red.jpg"/></a>
 <h3>Introduction</h3>
 <img src="https://matthias-web.com/wp-content/uploads/Envato/RML/v4/testimonal.png" />
 <a href="https://goo.gl/lBt6Tn"><img src="https://matthias-web.com/wp-content/uploads/Envato/support.jpg" /></a>
@@ -45,7 +46,7 @@
 <img src="https://matthias-web.com/wp-content/uploads/Envato/RML/v4/upload-direct.jpg" />
 <img src="https://matthias-web.com/wp-content/uploads/Envato/RML/v4/direct-upload.gif" /><br />
 <img src="https://matthias-web.com/wp-content/uploads/Envato/RML/v4/gallery-shortcode.jpg" />
-<img src="https://matthias-web.com/wp-content/uploads/Envato/RML/v4/gallery-shortcode.gif" />
+<img src="https://matthias-web.com/wp-content/uploads/Envato/RML/v4/gutenberg.jpg" />
 <img src="https://matthias-web.com/wp-content/uploads/Envato/RML/v4/content-order.jpg" />
 <img src="https://matthias-web.com/wp-content/uploads/Envato/RML/v4/custom-order.gif" />
 <img src="https://matthias-web.com/wp-content/uploads/Envato/RML/v4/list-mode.jpg" />
@@ -61,25 +62,30 @@
 <p>WP Real Media Library is a <strong>must-have WordPress plugin</strong> that will help save you a ton of time that goes into managing your media files.</p>
 <h3>Features</h3>
 <ul>
+   <li><strong>WordPress 5.x / Gutenberg</strong> ready</li>
    <li><strong>Folders</strong> for the WordPress media library</li>
    <li><strong>Drag & Drop</strong> your files </li>
    <li>Create <strong>shortcuts of files</strong>. Shortcuts doesn't need any physical storage <strong>(0kb)</strong>. Note also that the fields in the shortcuts can be different to the original file, for example "Title", "Description" or "Caption".</li>
-   <li>Full control for your folders in one toolbar (create, rename, delete, rearrange) </li>
+   <li>Full control for your folders in one toolbar (create, rename, delete)</li>
+   <li>Rearrange folders via <strong>drag&drop</strong> or by criterium (e. g. name ascending)</li>
+   <li>Bulk select folders and delete multiple folders at once</li>
    <li>Filter in <strong>insert media dialog</strong></li>
    <li>Improved Uploader</li>
    <li>Upload files <strong>directly</strong> to a folder</li>
-   <li>Create <strong>dynamic gallery</strong> from folder </li>
-   <li><strong>Custom image order</strong> for the dynamic galleries (drag & drop)</li>
+   <li>Create <strong>dynamic gallery</strong> from folder with <strong>Gutenberg block</strong> or shortcode</li>
+   <li>Order folder content via <strong>drag&drop</strong> or by criterium (date, name, ...)</li>
    <li>Fast navigatation to folders with <strong>fast folder search</strong>></li>
-   <li>Compatible with Revolution Slider</li>
-   <li>Compatible with touch devices</li>
+   <li>Translated into multiple languages</li>
+   <li><strong>Import</strong> categories / folders from plugins like <strong>FileBird, WP Media Folder, Enhanced Media Library, Media Library Assistant and more</strong></li>
+   <li>Compatible with Revolution Slider, WPML, PolyLang and so on</li>
+   <li>Works great on <strong>touch devices</strong></li>
    <li>Supports multisite</li>
-   <li>6 months support Included</li>
    <li>Forever free updates</li>
    <li><strong>GPDR / DSGVO:</strong> The plugin is collecting no personal data!</li>
+   <li>Compatible with brand+new Envato Elements</li>
 </ul>
 <h3>Structure</h3>
-As you can see from the screenshots RML (Real Media Library) supports three different folder types:
+<p>As you can see from the screenshots RML (Real Media Library) supports three different folder types:</p>
 <ul>
    <li><strong>The normal folder: </strong>A folder can contain every type of file and collections, but no galleries. If you want to create a subfolder simply select a folder from the list and click this button.<br /><br /></li>
    <li><strong>The collection: </strong>A collection can contain no files. But you can create there other collections and <strong>galleries</strong>. The mentioned above gallery is only a <i>gallery data folder</i>, that means they are not automatically in your frontend (your website).<br/>You can create a <strong>visual gallery</strong> from this <i>gallery data folder</i> via the Visual Editor in your page/post.<br /><br /></li>
@@ -87,65 +93,114 @@ As you can see from the screenshots RML (Real Media Library) supports three diff
 </ul>
 <h3>FAQ</h3>
 <a href="http://codecanyon.net/item/wp-real-media-library-media-categories-folders/13155134/comments">Question? <strong>Write a comment here</strong></a> or have a look at the <a href="https://matthias-web.com/wordpress/real-media-library/faq/">official RML FAQ</a><br /><br />
-<strong>If I move images around in my folders will they still be referenced correctly on the frontend wordpress site?</strong> Yes, do not worry about references.
-<br /><br />
-<strong>How do I update to a newer version of RML?</strong> Very simple: deactivate and delete the old version and upload the new version. The folders stay the same.
-<br /><br />
-<strong>Is there a way to select multiple files to be put into a folder?</strong> Just use the 'bulk select' Button in media grid. If you are using table mode check the entries and move.
-<br /><br />
-<strong>When i create a post i want to select an image from a specific folder, can i do this with this plugin?</strong> Yes, you can filter in a insert-dialog with the dropdown beside the search.
-<br /><br />
-<strong>Why three different folder types?</strong> This provides a better overview. You can simply distinguish where your image galleries are.
-<br /><br />
-<strong>Does it work with my Revolution Slider?</strong> Yes.
-<br /><br />
-<strong>I have WPML installed, the number of images in the folder does not match the number of shown images?</strong> Yes, in WPML you see your uploaded files depending on your current admin language. WPML says "This language selector determines which content to display. You can choose items in a specific language or in all languages." > Set it to "All languages" in the admin toolbar.
-<br /><br />
-<strong>Does the plugin work with my current images and files?</strong> Yes, just install and play.
-<br /><br />
-<strong>Does the plugin touch the file structure?</strong> No.
-<br /><br />
-<strong>Does the plugin change the image URLs?</strong> No.
-<br /><br />
-<strong>Does it work with WooCommerce?</strong> Yes.
-<br /><br />
+<ul>
+<li><strong>If I move images around in my folders will they still be referenced correctly on the frontend wordpress site?</strong>
+<ul>
+<li>Yes, do not worry about references.</li>
+</ul>
+</li>
+<li><strong>How do I update to a newer version of RML?</strong>
+<ul>
+<li>After activating open the "License settings" in the plugins list item "WP Real Media Library" and enter the Envato purchase code that you get after the purchase. You do not see the "Enter license" link? Then you are using an old version (< 4.1.0) of Real Media Library. Please download the latest version from CodeCanyon, uninstall the old version and install the new one - your folders stay.</li>
+</ul>
+</li>
+<li><strong>Is there a way to select multiple files to be put into a folder?</strong>
+<ul>
+<li>Just use the ‘bulk select’ Button in media grid. If you are using table mode check the entries and move.</li>
+</ul>
+</li>
+<li><strong>When i create a post i want to select an image from a specific folder, can i do this with this plugin?</strong>
+<ul>
+<li>Yes, you can filter in a insert-dialog with the dropdown beside the search.</li>
+</ul>
+</li>
+<li><strong>Why three different folder types?</strong>
+<ul>
+<li>This provides a better overview. You can simply distinguish where your image galleries are.</li>
+</ul>
+</li>
+<li><strong>Does it work with my Revolution Slider?</strong>
+<ul>
+<li>Yes.</li>
+</ul>
+</li>
+<li><strong>I have WPML installed, the number of images in the folder does not match the number of shown images?</strong>
+<ul>
+<li>Yes, in WPML you see your uploaded files depending on your current admin language. WPML says “This language selector determines which content to display. You can choose items in a specific language or in all languages.” &gt; Set it to “All languages” in the admin toolbar.</li>
+</ul>
+</li>
+<li><strong>Does the plugin work with my current images and files?</strong>
+<ul>
+<li>Yes, just install and play.</li>
+</ul>
+</li>
+<li><strong>Does the plugin touch the file structure?</strong>
+<ul>
+<li>No. But you can use an add-on like <a href="https://wordpress.org/plugins/physical-custom-upload-folder/">Physical Custom Upload Folder</a> or <a href="https://matthias-web.com/go/codecanyon/23104206">WP Real Physical Media</a></li>
+</ul>
+</li>
+<li><strong>Does the plugin change the image URLs?</strong>
+<ul>
+<li>No.</li>
+</ul>
+</li>
+<li><strong>Does it work with WooCommerce?</strong>
+<ul>
+<li>Yes.</li>
+</ul>
+</li>
+</ul>
+<br />
 <a href="http://goo.gl/HK6xnh"><img src="https://matthias-web.com/wp-content/uploads/Envato/RML/v4/convinced.jpg" />
 <img src="https://matthias-web.com/wp-content/uploads/Envato/add-cart.gif" /></a><br />
 <h3>Installation and Compatibility</h3>
 If you buy this item you will become an introduction how to install the plugin.
 <p>
-   The real media library is compatible with <strong>all wordpress themes and plugins</strong>. For example: You bought a theme on themeforest like the <strong>X Theme, Avada, Bridge, Salient, Be Theme or Enfold</strong>? No Problem! It also works great with <strong>Visual Composer, Justified Image Grid and Slider Revolution, Elementor and Beaver Builder.</strong>.
+   The real media library is compatible with <strong>all wordpress themes and plugins</strong>. For example: You bought a theme on themeforest like the <strong>X Theme, Avada, Bridge, Salient, Be Theme or Enfold</strong>? No Problem! It also works great with <strong>WPBakery Page Builder (Visual Composer), Justified Image Grid, Slider Revolution, Elementor, Beaver Builder, WPML, PolyLang, WooCommerce, DIVI Builder and so on...</strong>.
 </p>
-<h3>WP RML with Justified Image Grid</h3>
-<a href="http://goo.gl/FGXeZ8"><img src="https://matthias-web.com/wp-content/uploads/envato/rml/rml-jig.png" /></a>
+<h3>Justified Image Grid</h3>
+<a href="https://justifiedgrid.com/sources/wp-real-media-library/"><img src="https://matthias-web.com/wp-content/uploads/Plugins/Real-Media-Library/Add-Ons/justifiedgrid.jpg" /></a>
 <p>
-   <strong>Justified Image Grid (external premium plugin)</strong>: With the obvious visual advantage of JIG, a more important feature was created. The ability to show and traverse from any selected point of the RML tree. You can select folders and collections to display, not just galleries. JIG creates virtual pages according to the tree and allows navigation using a breadcrumb.<br/>
-   <a href="http://goo.gl/FGXeZ8"><strong>Learn more</strong></a>
+	<strong>Justified Image Grid (external premium plugin)</strong>: With the obvious visual advantage of JIG, a more important feature was created. The ability to show and traverse from any selected point of the RML tree. You can select folders and collections to display, not just galleries. JIG creates virtual pages according to the tree and allows navigation using a breadcrumb.<br/>
+	<a href="https://justifiedgrid.com/"><strong>Learn more</strong></a>
 </p>
-<h3>WP RML with Physical Custom Upload Folder</h3>
+<h3>Physical Custom Upload Folder</h3>
 <a href="https://wordpress.org/plugins/physical-custom-upload-folder/"><img src="https://matthias-web.com/wp-content/uploads/plugins/rml-upload-dir/banner-772x250.png" /></a>
 <p>Do you know the wp-content/uploads folder? There, the files are stored in year/month based folders. This can be a very complicated and mass process, especially when you are working with a FTP client like FileZilla.<br />
-<a href="https://wordpress.org/plugins/physical-custom-upload-folder/"><strong>Learn more</strong></a>
+	<a href="https://wordpress.org/plugins/physical-custom-upload-folder/"><strong>Learn more</strong></a>
 </p>
-<h3>WP RML with WP/LR Lightroom plugin</h3>
+<h3>WP/LR Lightroom</h3>
 <a href="https://wordpress.org/plugins/wplr-sync-folders/"><img src="https://matthias-web.com/wp-content/uploads/Plugins/Real-Media-Library/Add-Ons/banner-wplr-rml.jpg" /></a>
 <p>
-<strong>WP/LR Sync</strong> is a Lightroom Publish Service for WordPress. It helps you to publish / export your photos and collections to WordPress and to keep them synchronized. Any changes on your photos (including your metadata) or your collections will trigger a re-publish. Your website will be always in sync with your Lightroom.<br />
-<a href="https://wordpress.org/plugins/wplr-sync-folders/"><strong>Learn more</strong></a>
+	<strong>WP/LR Sync</strong> is a Lightroom Publish Service for WordPress. It helps you to publish / export your photos and collections to WordPress and to keep them synchronized. Any changes on your photos (including your metadata) or your collections will trigger a re-publish. Your website will be always in sync with your Lightroom.<br />
+	<a href="https://wordpress.org/plugins/wplr-sync-folders/"><strong>Learn more</strong></a>
+</p>
+<h3>Global Gallery - Responsive Gallery</h3>
+<a href="https://matthias-web.com/go/codecanyon/3310108"><img src="https://matthias-web.com/wp-content/uploads/Plugins/Real-Media-Library/Add-Ons/gg_big_banner.jpg" /></a>
+<p>
+	<strong>Global Gallery</strong> is a responsive gallery plugin for WordPress. Global Gallery handles unlimited image sources and comes with Four gallery layouts, ten lightboxes ready to use and is designed to be displayed on each device. It comes with fully featured slider and carousel.. and much much more!<br />
+	<a href="https://matthias-web.com/go/codecanyon/3310108"><strong>Learn more</strong></a>
 </p>
 <h3>All known extensions</h3>
 <ul>
-<li><a href="http://goo.gl/FGXeZ8">Real Media Library with Justified Image Grid</a></li>
-<li><a href="https://wordpress.org/plugins/dg-real-media-library/">Real Media Library with Document Gallery</a></li>
-<li><a href="https://wordpress.org/plugins/physical-custom-upload-folder/">Real Media Library with Physical Custom Upload Folder</a></li>
-<li><a href="https://wordpress.org/plugins/wplr-sync-folders/">Real Media Library with WP/LR Sync (Adobe Lightroom synchronization)</a></li>
-<li><a href="https://wordpress.org/plugins/acf-real-media-library-field/">Real Media Library field for Advanced Custom Fields</a></li>
-<li><a href="https://wordpress.org/plugins/default-startup-folder-for-real-media-library/">Default Startup Folder for Real Media Library</a></li>
-<li>You have built something cool with RML? Let me know that in the comments. :-)</li>
+   <li><a href="https://justifiedgrid.com/sources/wp-real-media-library/">Real Media Library with Justified Image Grid</a></li>
+   <li><a href="https://wordpress.org/plugins/dg-real-media-library/">Real Media Library with Document Gallery</a></li>
+   <li><a href="https://wordpress.org/plugins/physical-custom-upload-folder/">Real Media Library with Physical Custom Upload Folder</a></li>
+   <li><a href="https://matthias-web.com/go/codecanyon/23104206">Real Media Library with WP Real Physical Media</a></li>
+   <li><a href="https://wordpress.org/plugins/wplr-sync-folders/">Real Media Library with WP/LR Sync (Adobe Lightroom synchronization)</a></li>
+   <li><a href="https://matthias-web.com/go/codecanyon/7563340">Real Media Library with Essential Grid</a></li>
+   <li><a href="https://matthias-web.com/go/codecanyon/3310108">Real Media Library with Global Gallery</a></li>
+   <li><a href="https://wordpress.org/plugins/export-media-library/">Real Media Library with Export Media Library</a></li>
+   <li><a href="https://wordpress.org/plugins/acf-real-media-library-field/">Real Media Library field for Advanced Custom Fields</a></li>
+   <li><a href="https://wordpress.org/plugins/default-startup-folder-for-real-media-library/">Default Startup Folder for Real Media Library</a></li>
+   <li><a href="https://www.inode.it/fe-rml/?lang=en">FE-RML allows you to manage assets in frontend with folders</a></li>
+   <li>You have built something cool with RML? Let me know that in the comments. :-)</li>
 </ul>
 <h3>You are a developer and want to extend RML yourself?</h3>
 <p>RML provides a well documented API, you can find it <a href="https://matthias-web.com/wordpress/real-media-library/documentation/">here</a>. You also can <a href="https://matthiasweb.signup.team/">join MatthiasWeb Slack channel</a> to chat with the RML developer.</p>
-<p>You can use the following image as icon for RML: <img src="https://matthias-web.com/wp-content/uploads/plugins/real-media-library/logo-64.png" /></p>
+<p>You can use the following image as icon or banner if you built an add-on:</p>
+<img src="https://matthias-web.com/wp-content/uploads/plugins/real-media-library/logo-64.png" />
+<img src="https://matthias-web.com/wp-content/uploads/Envato/RML/v4/rml-addon.jpg" />
 <h3>We guarantee high quality products and support!</h3>
 <img src="https://matthias-web.com/wp-content/uploads/envato-reviews/review7.png" />
 <img src="https://matthias-web.com/wp-content/uploads/envato-reviews/review6.png" />
@@ -156,7 +211,113 @@ If you buy this item you will become an introduction how to install the plugin.
 <img src="https://matthias-web.com/wp-content/uploads/envato-reviews/review5.png" />
 
 <h3>Updates</h3>
-<code>08 September 2018 - Version 4.0.7
+<code>07 September 2019 - Version 4.5.4 Hotfix
+- Fixed bug with PHP 7.2.7
+ 
+07 September 2019 - Version 4.5.3
+- Fixed bug with WP 5.2.2 when uploading a file directly to a folder
+- Fixed bug with custom order when used a "orderby" clause before
+- (developers only) Extend core WP REST API /wp-json/wp/v2/media to fetch RML specific data
+- (developers only) Added RML/Item/DragDrop and RML/Folder/OrderBy action
+
+09 August 2019 - Version 4.5.2
+- Improved compatibility with Beaver Builder
+- Fixed bug with Flatsome UX Page builder when the folder dropdown shows no content
+- Fixed bug with SuperPWA wordpress plugin (cache)
+- Fixed bug with Avada 6.0 and Fusion Builder Live
+- Fixed bug with search box height in some cases that it needed too much space
+- (developers only) Added filter RML/Tree/Parsed so you can for example hide folders
+- (developers only) Added filter RML/Scripts/Skip to skip assets loading for given pages
+- (developers only) Fixed bug when uploading a file to a specific folder which is generated through filter
+- (developers only) Fixed bug with logged Notice in folder shortcode
+
+10 June 2019 - Version 4.5.1
+- Fixed bug with Gutenberg "Gallery" block and the folder sidebar
+- Fixed bug with folder selector, use modal dialog instead
+- Fixed bug with snax plugin frontend submission uploader
+- Improved "Add new" button with preselection in uploader
+
+07 May 2019 - Version 4.5.0
+- Added multi toolbar action "Delete" when multiple folders are checked
+- Added compatibility with "Export Media Library" plugin: Download a folder as .zip
+- Fixed bug with limited image amount in Gutenberg block
+- (developers only) Now you can add multi toolbar actions (when multiple nodes are selected)
+
+27 April 2019 - Version 4.4.1
+- Added feature to show SVG images in media library as image and not a generic icon
+- Fixed count cache in list mode
+- Fixed bug with Real Physical Media when queue is not filled in automatic mode when tree node is relocated
+- (developers only) Improved API function wp_rml_create_all_children_sql() with MySQL UDF and legacy fallback
+
+13 April 2019 - Version 4.4.0
+- Added sort menu for subfolders so you can order subfolders alphabetically
+- Added "title" attribute to tree node for accessibility
+- Added ability to cancel uploads
+- Fixed bug with uploader showing more then one upload message (with spinner)
+- Fixed bug with item click on touch devices does not open links / dialogs
+- Fixed bug in "Replace image" dialog
+- Fixed bug in custom content order when navigating back to All files
+ 
+19 March 2019 - Version 4.3.0
+- Added button to expand/collapse all node items
+- Added option while holding CTRL while creating a new folder you can bulk insert folders
+- Added option to rearrange a folder manually by selecting the parent folder and next sibling
+- Improved user settings / folder details dialog
+- Improved dropdown when selecting a folder (e. g. Media > Add new) with searchbar
+- Improved dark mode
+- Fixed bug with edit dialog in portfolio image gallery in Glazov theme
+- Fixed bug with domains with umlauts
+- Fixed bug with Divi Builder (wrong dependency registered for script)
+- (developers only) Added API function wp_rml_selector() for a dropdown
+
+02 February 2018 - Version 4.2.0
+- Added Gutenberg block to create a dynamic gallery (shortcode still works)
+- Fixed bug with Gutenberg edit dialog
+- Fixed bug with Ninja Table Pro and edit "Add media" dialog
+- Fixed bug with admin notice when using PHP version < 5.4
+- Fixed bug with frontend loading and "Upload to folder" dropdown (e.g. Marketplace vendor plugins)
+
+23 January 2019 - Version 4.1.1
+- Added Material WP compatibility
+- Added new order: Order by date (ascending, descending)
+- Added Polish translation
+- Fixed bug with custom order when editing a detail in the media dialog
+- Fixed bug with ACF when editing an image field
+- Fixed bug with PHP 5.4 and autoupdater
+- Fixed bug with PHP 7.3 (deprecation notice in error log)
+- Improved compatibility with Trive Quiz Builder
+
+10 December 2018 - Version 4.1.0
+- Added auto update functionality
+- Fixed bug with german translations
+- Fixed bug with with Thrive Architect page builder
+- Reduced installable .zip file size
+- (developers only) Improved performance for JS and CSS resources / assets
+
+07 December 2018 - Version 4.0.10
+- Fixed bug with hierarchical SQL queries and MariaDB database system
+- (developers only) Fixed bug with wp_attachment_get_shortcuts() API function
+
+27 November 2018 - Version 4.0.9
+- Fixed bug with option to hide shortcuts in All files view
+- Fixed bug with slow environments / pcs and big admin pages
+- Fixed bug with bulk select in grid mode and unnecessary server requests
+
+04 November 2018 - Version 4.0.8
+- Added option to hide shortcuts in All files view
+- Added compatibility with Slick slider plugin and other gallery shortcodes which use the standard gallery shortcode
+- Improved load time when opening a custom ordered folder
+- PHP 5.4 is now minimum required PHP version (legacy version 4.0.7 for PHP 5.3 support added to download package)
+- Fixed bug with "Edit gallery" dialog when entering in an ordered folder
+- Fixed bug with ordered images when switching back to "All files"
+- Fixed bug with bulk select and delete when using the grid view (performance)
+- Fixed bug with wrong breadcrumb in media details dialog
+- Fixed bug with The Grid and RML modal dialog (folders not visible)
+- Fixed bug with WPML and custom order content
+- Fixed bug with last queried folder (HTTP header error)
+- Fixed bug with picu Plugin
+
+08 September 2018 - Version 4.0.7
 - Added russian translation (thanks to Антон)
 - Added compatibility for Tailor page builder
 - Fixed bug with WPML: WPML Media translation add-on is no longer needed

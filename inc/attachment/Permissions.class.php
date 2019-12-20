@@ -17,6 +17,22 @@ class Permissions extends base\Base {
     
     private static $me = null;
     
+    const RESTRICTION_PARENT = "par";
+    
+    const RESTRICTION_REARRANGE = "rea";
+    
+    const RESTRICTION_CREATE = "cre";
+    
+    const RESTRICTION_INSERT = "ins";
+    
+    const RESTRICTION_RENAME = "ren";
+    
+    const RESTRICTION_DELETE = "del";
+    
+    const RESTRICTION_MOVE = "mov";
+    
+    const RESTRICTION_ALL = array("par","rea","cre","ins","ren","del","mov");
+    
     /**
      * Restrict to insert/upload new attachments, automatically moved to root if upload
      * Restrict to move files outside of a folder.

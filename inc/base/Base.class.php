@@ -31,7 +31,7 @@ abstract class Base {
      * Get a plugin relevant table name depending on the RML_DB_PREFIX constant.
      * 
      * @param string $name Append this name to the plugins relevant table with _{$name}.
-     * @returns string
+     * @return string
      */
     public function getTableName($name = "") {
         global $wpdb;
@@ -41,7 +41,7 @@ abstract class Base {
     /**
      * Get the core.
      * 
-     * @returns general\Core
+     * @return general\Core
      */
     public function getCore() {
         return general\Core::getInstance();

@@ -31,6 +31,8 @@ abstract class BaseFolder extends base\Base implements api\IFolder {
     
     protected $children;
     
+    protected $visible = true;
+    
     protected $restrictions = array();
     
     protected $restrictionsCount = 0;
@@ -38,8 +40,6 @@ abstract class BaseFolder extends base\Base implements api\IFolder {
     protected $systemReservedFolders = array("/", "..", ".");
     
     protected $contentCustomOrder;
-    
-    public $orderNumbers = array(); // Can be cleared!
     
     public function anyParentHas($column, $value = null, $valueFormat = "%s", $includeSelf = false, $until = null) {
         global $wpdb;
@@ -131,13 +131,22 @@ abstract class BaseFolder extends base\Base implements api\IFolder {
         return $this->slug;
     }
     
-    public function getPath($implode = "/", $map = "htmlentities") {
-        $return = array($this->name);
+    public function getPath($implode = "/", $map = "htmlentities", $filter = null) {
+        $return = array();
+        
+        // Add initial folder
+        if (!isset($filter) || call_user_func_array($filter, array($this))) {
+            $return[] = $this->name;
+        }
+        
         $folder = $this;
         while (true) {
             $f = wp_rml_get_object_by_id($folder->parent);
             if ($f !== null && $f->getType() !== RML_TYPE_ROOT) {
                 $folder = $f;
+                if (isset($filter) && !call_user_func_array($filter, array($folder))) {
+                    continue;
+                }
                 $return[] = $folder->name;
             }else{
                 break;
@@ -194,7 +203,7 @@ abstract class BaseFolder extends base\Base implements api\IFolder {
                  * 
                  * @param {array} $query The query with post_status, post_type and rml_folder
                  * @hook RML/Folder/QueryCountArgs
-                 * @returns {array} The query
+                 * @return {array} The query
                  */
                 apply_filters('RML/Folder/QueryCountArgs', array(
                 	'post_status' => 'inherit',
@@ -220,14 +229,26 @@ abstract class BaseFolder extends base\Base implements api\IFolder {
 	}
 	
 	public function getRestrictions() {
+	    if (!$this->isVisible()) {
+	        return attachment\Permissions::RESTRICTION_ALL;
+	    }
+	    
 	    return $this->restrictions;
 	}
 	
     public function getRestrictionsCount() {
+        if (!$this->isVisible()) {
+            return count(attachment\Permissions::RESTRICTION_ALL);
+        }
+        
 	    return $this->restrictionsCount;
 	}
 	
     public function getPlain($deep = false) {
+        if (!$this->isVisible()) {
+            return null;
+        }
+        
         $result = array(
             "id" => $this->getId(),
             "type" => $this->getType(),
@@ -241,14 +262,19 @@ abstract class BaseFolder extends base\Base implements api\IFolder {
             "contentCustomOrder" => (int) $this->getContentCustomOrder(),
             "forceCustomOrder" => $this->forceContentCustomOrder(),
             "lastOrderBy" => $this->getRowData('lastOrderBy'),
-            "orderAutomatically" => $this->getRowData('orderAutomatically')
+            "orderAutomatically" => $this->getRowData('orderAutomatically'),
+            "lastSubOrderBy" => $this->getRowData('lastSubOrderBy'),
+            "subOrderAutomatically" => $this->getRowData('subOrderAutomatically')
         );
         
         // Add the children
         if ($deep) {
             $children = array();
             foreach ($this->getChildren() as $child) {
-                $children[] = $child->getPlain($deep);
+                $plain = $child->getPlain($deep);
+                if ($plain !== null) {
+                    $children[] = $plain;
+                }
             }
             $result['children'] = $children;
         }
@@ -274,7 +300,15 @@ abstract class BaseFolder extends base\Base implements api\IFolder {
         return $this->getType() == $folder_type;
     }
     
+    public function isVisible() {
+        return $this->visible;
+    }
+    
     public function isRestrictFor($restriction) {
+        if (!$this->isVisible()) { // When it is not visible, restrict the complete access
+            return true;
+        }
+        
         return in_array($restriction, $this->restrictions) || in_array($restriction . ">", $this->restrictions);
     }
     
